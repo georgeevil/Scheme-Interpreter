@@ -451,7 +451,21 @@ def scm_read():
             raise SchemeError("unexpected EOF")
         syntax, val = input_port.current
         "*** YOUR CODE HERE ***"
-        input_port.pop(); return NULL
+        if syntax == ')':
+            input_port.pop()
+            return NULL
+        elif syntax == '.':
+            input_port.pop()
+            val2 = scm_read()
+            syntax1, val1 = input_port.pop()
+            if syntax1 == ')':
+                return val2
+            else:
+                raise SchemeError("unexpected token: {0}".format(repr(val)))
+        else:
+            first = scm_read()
+            rest = read_tail()
+        #input_port.pop(); return NULL
         return Pair(first, rest)
 
     if input_port.current is None:
@@ -467,6 +481,7 @@ def scm_read():
         return Symbol.string_to_symbol(val)
     elif syntax == "'":
         "*** YOUR CODE HERE ***"
+        
         return FALSE
     elif syntax == "(":
         return read_tail()
