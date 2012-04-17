@@ -1,0 +1,613 @@
+<html>
+<head>
+<title>scheme.py</title>
+</head>
+
+<body>
+<h3>scheme.py (<a href="scheme.py">plain text</a>)</h3>
+<hr>
+<pre>
+<span style="color: blue; font-weight: bold">import </span>re
+<span style="color: blue; font-weight: bold">import </span>sys
+<span style="color: blue; font-weight: bold">import </span>traceback
+<span style="color: blue; font-weight: bold">from </span>io <span style="color: blue; font-weight: bold">import </span>StringIO
+<span style="color: blue; font-weight: bold">from </span>ucb <span style="color: blue; font-weight: bold">import </span>main<span style="font-weight: bold">, </span>trace
+<span style="color: blue; font-weight: bold">from </span>scheme_tokens <span style="color: blue; font-weight: bold">import </span><span style="font-weight: bold">*
+</span><span style="color: blue; font-weight: bold">from </span>scheme_utils <span style="color: blue; font-weight: bold">import </span><span style="font-weight: bold">*
+</span><span style="color: blue; font-weight: bold">from </span>scheme_primitives <span style="color: blue; font-weight: bold">import </span><span style="font-weight: bold">*
+
+</span><span style="color: green; font-style: italic"># Name of file containing Scheme definitions.
+</span>SCHEME_PRELUDE_FILE <span style="font-weight: bold">= </span><span style="color: red">"scheme_prelude.scm"
+
+</span><span style="color: blue; font-weight: bold">class </span>PrimitiveFunction<span style="font-weight: bold">(</span>SchemeValue<span style="font-weight: bold">):
+    </span><span style="color: darkred">"""A Scheme function implemented directly in Python."""
+
+    </span><span style="color: blue; font-weight: bold">def </span>__init__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>func<span style="font-weight: bold">):
+        </span><span style="color: darkred">"""The function that applies Python function FUNC to its operands."""
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>func <span style="font-weight: bold">= </span>func
+
+    <span style="color: blue; font-weight: bold">def </span>type_name<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue; font-weight: bold">return </span><span style="color: red">"primitive procedure"
+
+    </span><span style="color: blue; font-weight: bold">def </span>apply_step<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>args<span style="font-weight: bold">, </span>evaluation<span style="font-weight: bold">):
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span>evaluation<span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>FALSE<span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>__repr__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue; font-weight: bold">return </span><span style="color: red">"PrimitiveFunction({0})"</span><span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span>repr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>func<span style="font-weight: bold">))
+
+</span><span style="color: blue; font-weight: bold">class </span>LambdaFunction<span style="font-weight: bold">(</span>SchemeValue<span style="font-weight: bold">):
+    </span><span style="color: darkred">"""A function defined by lambda expression or the complex define form."""
+
+    </span><span style="color: blue; font-weight: bold">def </span>__init__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>formals<span style="font-weight: bold">, </span>body<span style="font-weight: bold">, </span>env<span style="font-weight: bold">):
+        </span><span style="color: darkred">"""A function whose formal parameter list is FORMALS (in Scheme format),
+        whose body is the single Scheme expression BODY, and whose environment
+        is the EnvironFrame ENV.  A lambda expression containing multiple expressions,
+        such as (lambda (x) (set! y x) (+ x 1)) can be handled by
+        using (begin (set! y x) (+ x 1)) as the body."""
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>formals <span style="font-weight: bold">= </span>formals
+        <span style="color: blue">self</span><span style="font-weight: bold">.</span>body <span style="font-weight: bold">= </span>body
+        <span style="color: blue">self</span><span style="font-weight: bold">.</span>env <span style="font-weight: bold">= </span>env
+
+    <span style="color: blue; font-weight: bold">def </span>type_name<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue; font-weight: bold">return </span><span style="color: red">"closure"
+
+    </span><span style="color: blue; font-weight: bold">def </span>apply_step<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>args<span style="font-weight: bold">, </span>evaluation<span style="font-weight: bold">):
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span>evaluation<span style="font-weight: bold">.</span>set_expr<span style="font-weight: bold">(</span>FALSE<span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>write<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>out<span style="font-weight: bold">):
+        </span><span style="color: blue; font-weight: bold">print</span><span style="font-weight: bold">(</span><span style="color: red">"&lt;(lambda "</span><span style="font-weight: bold">, </span>file<span style="font-weight: bold">=</span>out<span style="font-weight: bold">, </span>end<span style="font-weight: bold">=</span><span style="color: red">''</span><span style="font-weight: bold">)
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>formals<span style="font-weight: bold">.</span>write<span style="font-weight: bold">(</span>out<span style="font-weight: bold">)
+        </span><span style="color: blue; font-weight: bold">print</span><span style="font-weight: bold">(</span><span style="color: red">" "</span><span style="font-weight: bold">, </span>end<span style="font-weight: bold">=</span><span style="color: red">''</span><span style="font-weight: bold">, </span>file<span style="font-weight: bold">=</span>out<span style="font-weight: bold">)
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>body<span style="font-weight: bold">.</span>write<span style="font-weight: bold">(</span>out<span style="font-weight: bold">)
+        </span><span style="color: blue; font-weight: bold">print</span><span style="font-weight: bold">(</span><span style="color: red">"), {0}&gt;"</span><span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span>repr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>env<span style="font-weight: bold">)), </span>file<span style="font-weight: bold">=</span>out<span style="font-weight: bold">, </span>end<span style="font-weight: bold">=</span><span style="color: red">''</span><span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>__repr__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue; font-weight: bold">return </span><span style="color: red">"LambdaFunction({0}, {1}, {2})" </span>\
+               <span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span>repr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>formals<span style="font-weight: bold">), </span>repr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>body<span style="font-weight: bold">), </span>repr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>env<span style="font-weight: bold">))
+
+</span><span style="color: blue; font-weight: bold">class </span>EnvironFrame<span style="font-weight: bold">:
+
+    </span><span style="color: darkred">"""An environment frame, representing a mapping from Scheme symbols to
+    Scheme values, possibly enclosed within another frame."""
+
+    </span><span style="color: blue; font-weight: bold">def </span>__init__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>enclosing<span style="font-weight: bold">):
+        </span><span style="color: darkred">"""An empty frame that is attached to the frame ENCLOSING."""
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>inner <span style="font-weight: bold">= {}
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>enclosing <span style="font-weight: bold">= </span>enclosing
+
+    <span style="color: blue; font-weight: bold">def </span>__getitem__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>sym<span style="font-weight: bold">):
+        </span><span style="color: blue; font-weight: bold">return </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>find<span style="font-weight: bold">(</span>sym<span style="font-weight: bold">).</span>inner<span style="font-weight: bold">[</span>sym<span style="font-weight: bold">]
+
+    </span><span style="color: blue; font-weight: bold">def </span>__setitem__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>sym<span style="font-weight: bold">, </span>val<span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>find<span style="font-weight: bold">(</span>sym<span style="font-weight: bold">).</span>inner<span style="font-weight: bold">[</span>sym<span style="font-weight: bold">] = </span>val
+
+    <span style="color: blue; font-weight: bold">def </span>__repr__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue; font-weight: bold">if </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>enclosing <span style="color: blue; font-weight: bold">is </span><span style="color: blue">None</span><span style="font-weight: bold">:
+            </span><span style="color: blue; font-weight: bold">return </span><span style="color: red">"&lt;Global frame at {0}&gt;"</span><span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span>hex<span style="font-weight: bold">(</span>id<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">)))
+        </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">: 
+            </span><span style="color: blue; font-weight: bold">return </span><span style="color: red">"&lt;Frame at {0} --&gt; {1}&gt;"</span><span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span>hex<span style="font-weight: bold">(</span>id<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">)),
+                                                   </span>repr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>enclosing<span style="font-weight: bold">))
+
+    </span><span style="color: blue; font-weight: bold">def </span>find<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>sym<span style="font-weight: bold">):
+        </span><span style="color: darkred">"""The environment frame at or enclosing SELF that defined SYM.  It
+        is an error if it does not exist."""
+        </span>e <span style="font-weight: bold">= </span><span style="color: blue">self
+        </span><span style="color: blue; font-weight: bold">while </span>e <span style="color: blue; font-weight: bold">is not </span><span style="color: blue">None</span><span style="font-weight: bold">:
+            </span><span style="color: blue; font-weight: bold">if </span>sym <span style="color: blue; font-weight: bold">in </span>e<span style="font-weight: bold">.</span>inner<span style="font-weight: bold">:
+                </span><span style="color: blue; font-weight: bold">return </span>e
+            e <span style="font-weight: bold">= </span>e<span style="font-weight: bold">.</span>enclosing
+        <span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span><span style="color: red">"unknown identifier: {0}"</span><span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span>str<span style="font-weight: bold">(</span>sym<span style="font-weight: bold">)))
+
+    </span><span style="color: blue; font-weight: bold">def </span>make_call_frame<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>formals<span style="font-weight: bold">, </span>vals<span style="font-weight: bold">):
+        </span><span style="color: darkred">"""A new local frame attached to SELF in which the symbols in
+        the Scheme formal parameter list FORMALS are bound to the
+        Scheme values in the Python list VALS.  FORMALS has either of the
+        formats allowed by the Evaluation.check_formals method.  If
+        the last cdr in FORMALS is a null list (that is, if FORMALS is
+        an ordinary Scheme list), then the number of formals must be the same
+        as the number of VALS, and each symbol in FORMALS is bound to the
+        corresponding value in VALS.  If the last cdr in FORMALS is a
+        symbol, then the number of values in VALS  must be at least as large as
+        the number of preceding ("normal") formal symbols, and the last
+        formal symbol is bound to a Scheme list containing the remaining
+        values in VALS (which may be 0)."""
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span><span style="color: blue; font-weight: bold">return </span>EnvironFrame<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>define<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>sym<span style="font-weight: bold">, </span>val<span style="font-weight: bold">):
+        </span><span style="color: darkred">"""Define Scheme symbol SYM to have value VAL in SELF."""
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>inner<span style="font-weight: bold">[</span>sym<span style="font-weight: bold">] = </span>val
+
+<span style="color: blue; font-weight: bold">class </span>Evaluation<span style="font-weight: bold">:
+    </span><span style="color: darkred">"""An Evaluation represents the information needed to evaluate an
+    expression: the expression and the environment in which it is to be
+    evaluated.  The step method performs at least part of the evaluation of
+    the expression, either leaving behind the final value, or else another
+    intermediate expression and environment to be further evaluated."""
+
+    </span><span style="color: blue; font-weight: bold">def </span>__init__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>expr<span style="font-weight: bold">, </span>env<span style="font-weight: bold">):
+        </span><span style="color: darkred">"""An evaluation of EXPR in the environment ENV."""
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr <span style="font-weight: bold">= </span>expr
+        <span style="color: blue">self</span><span style="font-weight: bold">.</span>env <span style="font-weight: bold">= </span>env
+        <span style="color: blue">self</span><span style="font-weight: bold">.</span>value <span style="font-weight: bold">= </span><span style="color: blue">None
+
+    </span><span style="color: blue; font-weight: bold">def </span>set_value<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>value<span style="font-weight: bold">):
+        </span><span style="color: darkred">"""Set the value of SELF to VALUE, completing the evaluation."""
+        </span><span style="color: blue; font-weight: bold">assert </span>value <span style="color: blue; font-weight: bold">is not </span><span style="color: blue">None
+        self</span><span style="font-weight: bold">.</span>expr <span style="font-weight: bold">= </span><span style="color: blue">None
+        self</span><span style="font-weight: bold">.</span>value <span style="font-weight: bold">= </span>value
+
+    <span style="color: blue; font-weight: bold">def </span>set_expr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>expr<span style="font-weight: bold">, </span>env <span style="font-weight: bold">= </span><span style="color: blue">None</span><span style="font-weight: bold">):
+        </span><span style="color: darkred">"""Replace SELF's expression with EXPR.  If ENV is non-null, replace
+        the environment in which EXPR is being evaluated with ENV."""
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr <span style="font-weight: bold">= </span>expr
+        <span style="color: blue; font-weight: bold">if </span>env <span style="color: blue; font-weight: bold">is not </span><span style="color: blue">None</span><span style="font-weight: bold">:
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>env <span style="font-weight: bold">= </span>env
+
+    <span style="color: blue; font-weight: bold">def </span>evaluated<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: darkred">"""True iff this evaluation is finished."""
+        </span><span style="color: blue; font-weight: bold">return </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>value <span style="color: blue; font-weight: bold">is not </span><span style="color: blue">None
+
+    </span><span style="color: blue; font-weight: bold">def </span>step<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: darkred">"""Either complete SELF's computation, causing all remaining
+        side effects and producing a value, or else partially perform the
+        remaining computation, leaving SELF with an expression and environment
+        that denote the remaining computation."""
+        </span>expr <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr
+        <span style="color: blue; font-weight: bold">if </span>expr<span style="font-weight: bold">.</span>symbolp<span style="font-weight: bold">():
+            </span><span style="color: red">"*** YOUR CODE HERE ***"
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>FALSE<span style="font-weight: bold">)
+        </span><span style="color: blue; font-weight: bold">elif </span>expr<span style="font-weight: bold">.</span>atomp<span style="font-weight: bold">():
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>expr<span style="font-weight: bold">)
+        </span><span style="color: blue; font-weight: bold">elif not </span>scm_listp<span style="font-weight: bold">(</span>expr<span style="font-weight: bold">):
+            </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span><span style="color: red">"malformed list: {0}"</span><span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span>str<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">)))
+        </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+            </span>op <span style="font-weight: bold">= </span>expr<span style="font-weight: bold">.</span>car
+            <span style="color: blue; font-weight: bold">if </span>op<span style="font-weight: bold">.</span>symbolp<span style="font-weight: bold">():
+                </span>Evaluation<span style="font-weight: bold">.</span>SPECIAL_FORMS<span style="font-weight: bold">.</span>get<span style="font-weight: bold">(</span>op<span style="font-weight: bold">, </span>Evaluation<span style="font-weight: bold">.</span>do_call_form<span style="font-weight: bold">)(</span><span style="color: blue">self</span><span style="font-weight: bold">)
+            </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+                </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>do_call_form<span style="font-weight: bold">()
+
+    </span><span style="color: blue; font-weight: bold">def </span>full_eval<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>expr<span style="font-weight: bold">, </span>env <span style="font-weight: bold">= </span><span style="color: blue">None</span><span style="font-weight: bold">):
+        </span><span style="color: darkred">"""The value of EXPR when evaluated in environment ENV (SELF.env by
+        default."""
+        </span><span style="color: blue; font-weight: bold">return </span>Evaluation<span style="font-weight: bold">(</span>expr<span style="font-weight: bold">, </span>env <span style="color: blue; font-weight: bold">or </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>env<span style="font-weight: bold">).</span>step_to_value<span style="font-weight: bold">()
+
+    </span><span style="color: blue; font-weight: bold">def </span>step_to_value<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: darkred">"""Perform evaluation steps on SELF until a value is reached."""
+        </span><span style="color: blue; font-weight: bold">while not </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>evaluated<span style="font-weight: bold">():
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>step<span style="font-weight: bold">()
+        </span><span style="color: blue; font-weight: bold">return </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>value
+
+    <span style="color: green; font-style: italic"># Special forms.  Each of these methods is called when
+    # SELF.expr apparently contains the kind of special form the method
+    # handles.  It checks the syntactic validity of the form, and partially 
+    # evaluates it, either leaving the final value or an expression
+    # that carries out the rest of the computation.
+
+    </span><span style="color: blue; font-weight: bold">def </span>do_quote_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">2</span><span style="font-weight: bold">, </span><span style="color: red">2</span><span style="font-weight: bold">)
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>cdr<span style="font-weight: bold">.</span>car<span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>do_lambda_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">3</span><span style="font-weight: bold">)
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_formals<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>cdr<span style="font-weight: bold">.</span>car<span style="font-weight: bold">)
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>FALSE<span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>do_if_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">4</span><span style="font-weight: bold">, </span><span style="color: red">4</span><span style="font-weight: bold">)
+        </span>cond <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>full_eval<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>cdr<span style="font-weight: bold">.</span>car<span style="font-weight: bold">)
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_expr<span style="font-weight: bold">(</span>FALSE<span style="font-weight: bold">)
+                        
+  
+    </span><span style="color: blue; font-weight: bold">def </span>do_and_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">1</span><span style="font-weight: bold">)
+
+        </span><span style="color: blue; font-weight: bold">if </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>length<span style="font-weight: bold">() == </span><span style="color: red">1</span><span style="font-weight: bold">:
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>TRUE<span style="font-weight: bold">)
+            </span><span style="color: blue; font-weight: bold">return
+
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_expr<span style="font-weight: bold">(</span>FALSE<span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>do_or_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">1</span><span style="font-weight: bold">)
+
+        </span><span style="color: blue; font-weight: bold">if </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>length<span style="font-weight: bold">() == </span><span style="color: red">1</span><span style="font-weight: bold">:
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>FALSE<span style="font-weight: bold">)
+            </span><span style="color: blue; font-weight: bold">return
+
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_expr<span style="font-weight: bold">(</span>FALSE<span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>do_cond_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">1</span><span style="font-weight: bold">)
+        </span>num_clauses <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>length<span style="font-weight: bold">()
+        </span><span style="color: blue; font-weight: bold">for </span>i <span style="color: blue; font-weight: bold">in </span>range<span style="font-weight: bold">(</span><span style="color: red">1</span><span style="font-weight: bold">, </span>num_clauses<span style="font-weight: bold">):
+            </span>clause <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>nth<span style="font-weight: bold">(</span>i<span style="font-weight: bold">)
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">1</span><span style="font-weight: bold">, </span>expr <span style="font-weight: bold">= </span>clause<span style="font-weight: bold">)
+            </span><span style="color: blue; font-weight: bold">if </span>clause<span style="font-weight: bold">.</span>car <span style="color: blue; font-weight: bold">is </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>_ELSE_SYM <span style="color: blue; font-weight: bold">and </span>i <span style="font-weight: bold">== </span>num_clauses<span style="font-weight: bold">-</span><span style="color: red">1</span><span style="font-weight: bold">:
+                </span>test <span style="font-weight: bold">= </span>TRUE
+                <span style="color: blue; font-weight: bold">if </span>clause<span style="font-weight: bold">.</span>cdr<span style="font-weight: bold">.</span>nullp<span style="font-weight: bold">():
+                    </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span><span style="color: red">"badly formed else clause"</span><span style="font-weight: bold">)
+            </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+                </span><span style="color: red">"*** YOUR CODE HERE ***"
+                </span>test <span style="font-weight: bold">= </span>FALSE
+            <span style="color: blue; font-weight: bold">if </span>test<span style="font-weight: bold">:
+                </span><span style="color: blue; font-weight: bold">if </span>clause<span style="font-weight: bold">.</span>length<span style="font-weight: bold">() == </span><span style="color: red">1</span><span style="font-weight: bold">:
+                    </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>test<span style="font-weight: bold">)
+                </span><span style="color: blue; font-weight: bold">elif </span>clause<span style="font-weight: bold">.</span>cdr<span style="font-weight: bold">.</span>car <span style="color: blue; font-weight: bold">is </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>_ARROW_SYM<span style="font-weight: bold">:
+                    </span><span style="color: red">"*** YOUR CODE HERE ***"
+                    </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_expr<span style="font-weight: bold">(</span>FALSE<span style="font-weight: bold">)
+                </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+                    </span><span style="color: blue; font-weight: bold">for </span>i <span style="color: blue; font-weight: bold">in </span>range<span style="font-weight: bold">(</span><span style="color: red">1</span><span style="font-weight: bold">, </span>clause<span style="font-weight: bold">.</span>length<span style="font-weight: bold">() - </span><span style="color: red">1</span><span style="font-weight: bold">):
+                        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>full_eval<span style="font-weight: bold">(</span>clause<span style="font-weight: bold">.</span>nth<span style="font-weight: bold">(</span>i<span style="font-weight: bold">))
+                    </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_expr<span style="font-weight: bold">(</span>clause<span style="font-weight: bold">.</span>nth<span style="font-weight: bold">(</span>clause<span style="font-weight: bold">.</span>length<span style="font-weight: bold">()-</span><span style="color: red">1</span><span style="font-weight: bold">))
+                </span><span style="color: blue; font-weight: bold">return
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>UNSPEC<span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>do_set_bang_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">3</span><span style="font-weight: bold">, </span><span style="color: red">3</span><span style="font-weight: bold">)
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>UNSPEC<span style="font-weight: bold">)
+        
+    </span><span style="color: blue; font-weight: bold">def </span>do_define_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">3</span><span style="font-weight: bold">)
+        </span>target <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>nth<span style="font-weight: bold">(</span><span style="color: red">1</span><span style="font-weight: bold">)
+        </span><span style="color: blue; font-weight: bold">if </span>target<span style="font-weight: bold">.</span>symbolp<span style="font-weight: bold">():
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">3</span><span style="font-weight: bold">,</span><span style="color: red">3</span><span style="font-weight: bold">)
+            </span><span style="color: red">"*** YOUR CODE HERE ***"
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>UNSPEC<span style="font-weight: bold">)
+        </span><span style="color: blue; font-weight: bold">elif not </span>target<span style="font-weight: bold">.</span>pairp<span style="font-weight: bold">():
+            </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span><span style="color: red">"bad argument to define"</span><span style="font-weight: bold">)
+        </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_formals<span style="font-weight: bold">(</span>target<span style="font-weight: bold">.</span>cdr<span style="font-weight: bold">)
+            </span><span style="color: red">"*** YOUR CODE HERE ***"
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>UNSPEC<span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>do_begin_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">2</span><span style="font-weight: bold">)
+        </span><span style="color: blue; font-weight: bold">for </span>k <span style="color: blue; font-weight: bold">in </span>range<span style="font-weight: bold">(</span><span style="color: red">1</span><span style="font-weight: bold">, </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>length<span style="font-weight: bold">()-</span><span style="color: red">1</span><span style="font-weight: bold">):
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>full_eval<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>nth<span style="font-weight: bold">(</span>k<span style="font-weight: bold">))
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_expr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>nth<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>length<span style="font-weight: bold">()-</span><span style="color: red">1</span><span style="font-weight: bold">))
+
+    </span><span style="color: blue; font-weight: bold">def </span>do_let_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">3</span><span style="font-weight: bold">)
+        </span>bindings <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>cdr<span style="font-weight: bold">.</span>car
+        exprs <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>cdr<span style="font-weight: bold">.</span>cdr
+        <span style="color: blue; font-weight: bold">if not </span>scm_listp<span style="font-weight: bold">(</span>bindings<span style="font-weight: bold">):
+            </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span><span style="color: red">"bad bindings list in let form"</span><span style="font-weight: bold">)
+        </span>symbols <span style="font-weight: bold">= </span>NULL
+        vals <span style="font-weight: bold">= []
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span>let_frame <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>env<span style="font-weight: bold">.</span>make_call_frame<span style="font-weight: bold">(</span>symbols<span style="font-weight: bold">, </span>vals<span style="font-weight: bold">)
+        </span><span style="color: blue; font-weight: bold">for </span>i <span style="color: blue; font-weight: bold">in </span>range<span style="font-weight: bold">(</span><span style="color: red">0</span><span style="font-weight: bold">, </span>exprs<span style="font-weight: bold">.</span>length<span style="font-weight: bold">()-</span><span style="color: red">1</span><span style="font-weight: bold">):
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>full_eval<span style="font-weight: bold">(</span>exprs<span style="font-weight: bold">.</span>car<span style="font-weight: bold">, </span>let_frame<span style="font-weight: bold">)
+            </span>exprs <span style="font-weight: bold">= </span>exprs<span style="font-weight: bold">.</span>cdr
+        <span style="color: blue">self</span><span style="font-weight: bold">.</span>set_expr<span style="font-weight: bold">(</span>exprs<span style="font-weight: bold">.</span>car<span style="font-weight: bold">, </span>let_frame<span style="font-weight: bold">)
+
+    </span><span style="color: green; font-style: italic"># Extra credit
+    </span><span style="color: blue; font-weight: bold">def </span>do_let_star_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">3</span><span style="font-weight: bold">)
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>UNSPEC<span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">def </span>do_case_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">2</span><span style="font-weight: bold">)
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>set_value<span style="font-weight: bold">(</span>UNSPEC<span style="font-weight: bold">)
+
+    </span><span style="color: green; font-style: italic"># Symbols that are used in special forms.
+
+    </span>_AND_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"and"</span><span style="font-weight: bold">)
+    </span>_ARROW_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"=&gt;"</span><span style="font-weight: bold">)
+    </span>_BEGIN_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"begin"</span><span style="font-weight: bold">)
+    </span>_CASE_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"case"</span><span style="font-weight: bold">)
+    </span>_COND_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"cond"</span><span style="font-weight: bold">)
+    </span>_DEFINE_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"define"</span><span style="font-weight: bold">)
+    </span>_ELSE_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"else"</span><span style="font-weight: bold">)
+    </span>_IF_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"if"</span><span style="font-weight: bold">)
+    </span>_LAMBDA_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"lambda"</span><span style="font-weight: bold">)
+    </span>_LET_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"let"</span><span style="font-weight: bold">)
+    </span>_LET_STAR_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"let*"</span><span style="font-weight: bold">)
+    </span>_OR_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"or"</span><span style="font-weight: bold">)
+    </span>_QUOTE_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"quote"</span><span style="font-weight: bold">)
+    </span>_SET_BANG_SYM <span style="font-weight: bold">= </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span><span style="color: red">"set!"</span><span style="font-weight: bold">)
+
+    </span><span style="color: green; font-style: italic"># Mapping of symbols that introduce special forms to the methods that
+    # handle the forms.
+    </span>SPECIAL_FORMS <span style="font-weight: bold">= {
+        </span>_AND_SYM <span style="font-weight: bold">:     </span>do_and_form<span style="font-weight: bold">,
+        </span>_BEGIN_SYM <span style="font-weight: bold">:   </span>do_begin_form<span style="font-weight: bold">,
+        </span>_CASE_SYM <span style="font-weight: bold">:    </span>do_case_form<span style="font-weight: bold">,
+        </span>_COND_SYM <span style="font-weight: bold">:    </span>do_cond_form<span style="font-weight: bold">,
+        </span>_DEFINE_SYM <span style="font-weight: bold">:  </span>do_define_form<span style="font-weight: bold">,
+        </span>_IF_SYM <span style="font-weight: bold">:      </span>do_if_form<span style="font-weight: bold">,
+        </span>_LAMBDA_SYM <span style="font-weight: bold">:  </span>do_lambda_form<span style="font-weight: bold">,
+        </span>_LET_SYM <span style="font-weight: bold">:     </span>do_let_form<span style="font-weight: bold">,
+        </span>_LET_STAR_SYM<span style="font-weight: bold">: </span>do_let_star_form<span style="font-weight: bold">,
+        </span>_OR_SYM <span style="font-weight: bold">:      </span>do_or_form<span style="font-weight: bold">,
+        </span>_QUOTE_SYM  <span style="font-weight: bold">:  </span>do_quote_form<span style="font-weight: bold">,
+        </span>_SET_BANG_SYM<span style="font-weight: bold">: </span>do_set_bang_form<span style="font-weight: bold">,
+    }
+
+    </span><span style="color: green; font-style: italic"># Function calls
+
+    </span><span style="color: blue; font-weight: bold">def </span>do_call_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>check_form<span style="font-weight: bold">(</span><span style="color: red">1</span><span style="font-weight: bold">)
+        </span>op <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>full_eval<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr<span style="font-weight: bold">.</span>car<span style="font-weight: bold">)
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span>op<span style="font-weight: bold">.</span>apply_step<span style="font-weight: bold">([], </span><span style="color: blue">self</span><span style="font-weight: bold">)
+
+    </span><span style="color: green; font-style: italic"># Utility methods for checking the structure of Scheme values that
+    # represent programs.
+
+    </span><span style="color: blue; font-weight: bold">def </span>check_form<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>min<span style="font-weight: bold">, </span>max <span style="font-weight: bold">= </span><span style="color: blue">None</span><span style="font-weight: bold">, </span>expr <span style="font-weight: bold">= </span><span style="color: blue">None</span><span style="font-weight: bold">):
+        </span><span style="color: darkred">"""Check EXPR (default SELF.expr) is a proper list whose length is
+        at least MIN and no more than MAX (default: no maximum). Raises
+        a SchemeError if this is not the case."""
+        </span><span style="color: blue; font-weight: bold">if </span>expr <span style="color: blue; font-weight: bold">is </span><span style="color: blue">None</span><span style="font-weight: bold">:
+            </span>expr <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>expr
+        <span style="color: blue; font-weight: bold">if not </span>scm_listp<span style="font-weight: bold">(</span>expr<span style="font-weight: bold">):
+            </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span><span style="color: red">"badly formed expression"</span><span style="font-weight: bold">)
+        </span>L <span style="font-weight: bold">= </span>expr<span style="font-weight: bold">.</span>length<span style="font-weight: bold">()
+        </span><span style="color: blue; font-weight: bold">if </span>L <span style="font-weight: bold">&lt; </span>min<span style="font-weight: bold">:
+            </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span><span style="color: red">"too few operands in form"</span><span style="font-weight: bold">)
+        </span><span style="color: blue; font-weight: bold">elif </span>max <span style="color: blue; font-weight: bold">is not </span><span style="color: blue">None </span><span style="color: blue; font-weight: bold">and </span>L <span style="font-weight: bold">&gt; </span>max<span style="font-weight: bold">:
+            </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span><span style="color: red">"too many operands in form"</span><span style="font-weight: bold">)
+
+    </span>@staticmethod
+    <span style="color: blue; font-weight: bold">def </span>check_formals<span style="font-weight: bold">(</span>formal_list<span style="font-weight: bold">):
+        </span><span style="color: darkred">"""Check that FORMAL_LIST is a valid parameter list having either 
+        the form (sym1 sym2 ... symn) or else (sym1 sym2 ... symn . symrest),
+        where each symx is a distinct symbol."""
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span><span style="color: blue; font-weight: bold">pass
+
+def </span>scm_eval<span style="font-weight: bold">(</span>sexpr<span style="font-weight: bold">):
+    </span><span style="color: green; font-style: italic"># To begin with, this function simply returns SEXPR unchanged, without
+    # doing any evaluation.  This allows you to test your solution to
+    # problem 1: the interpreter will just echo all the expressions in your
+    # input when you type
+    #    python3 scheme.py tests.scm
+    # (or other file full of Scheme expressions).  When you are finished
+    # with Problem 1, replace the return statement below with 
+    #    return Evaluation(sexpr, the_global_environment).step_to_value()
+    # which is what evaluation is supposed to do.
+
+    </span><span style="color: blue; font-weight: bold">return </span>sexpr
+
+<span style="color: blue; font-weight: bold">def </span>scm_apply<span style="font-weight: bold">(</span>func<span style="font-weight: bold">, </span>arg0<span style="font-weight: bold">, *</span>other_args<span style="font-weight: bold">):
+    </span><span style="color: darkred">"""If OTHER_ARGS is empty, apply the function value FUNC to the argument 
+    list in ARG0 (a Scheme list).  Otherwise, the values of ARG0 and all but
+    the last value in OTHER_ARGS are first added (with scm_cons) to
+    the beginning of the last argument in OTHER_ARGS (which must be 
+    a Scheme list), and then passed to the value of FUNC."""
+    </span><span style="color: blue; font-weight: bold">if </span>other_args<span style="font-weight: bold">:
+        </span>check_type<span style="font-weight: bold">(</span>other_args<span style="font-weight: bold">[-</span><span style="color: red">1</span><span style="font-weight: bold">], </span>scm_listp<span style="font-weight: bold">, </span>len<span style="font-weight: bold">(</span>other_args<span style="font-weight: bold">), </span><span style="color: red">'apply'</span><span style="font-weight: bold">)
+        </span>args <span style="font-weight: bold">= [</span>arg0<span style="font-weight: bold">]
+        </span><span style="color: blue; font-weight: bold">for </span>i <span style="color: blue; font-weight: bold">in </span>range<span style="font-weight: bold">(</span>len<span style="font-weight: bold">(</span>other_args<span style="font-weight: bold">)-</span><span style="color: red">1</span><span style="font-weight: bold">):
+            </span>args<span style="font-weight: bold">.</span>append<span style="font-weight: bold">(</span>other_args<span style="font-weight: bold">[</span>i<span style="font-weight: bold">])
+        </span>rest <span style="font-weight: bold">= </span>other_args<span style="font-weight: bold">[-</span><span style="color: red">1</span><span style="font-weight: bold">]
+    </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+        </span>check_type<span style="font-weight: bold">(</span>arg0<span style="font-weight: bold">, </span>scm_listp<span style="font-weight: bold">, </span><span style="color: red">0</span><span style="font-weight: bold">, </span><span style="color: red">'apply'</span><span style="font-weight: bold">)
+        </span>args <span style="font-weight: bold">= []
+        </span>rest <span style="font-weight: bold">= </span>arg0
+
+    <span style="color: blue; font-weight: bold">while not </span>rest<span style="font-weight: bold">.</span>nullp<span style="font-weight: bold">():
+        </span>args<span style="font-weight: bold">.</span>append<span style="font-weight: bold">(</span>rest<span style="font-weight: bold">.</span>car<span style="font-weight: bold">)
+        </span>rest <span style="font-weight: bold">= </span>rest<span style="font-weight: bold">.</span>cdr
+    
+    evaluation <span style="font-weight: bold">= </span>Evaluation<span style="font-weight: bold">(</span><span style="color: blue">None</span><span style="font-weight: bold">, </span><span style="color: blue">None</span><span style="font-weight: bold">)
+    </span>func<span style="font-weight: bold">.</span>apply_step<span style="font-weight: bold">(</span>args<span style="font-weight: bold">, </span>evaluation<span style="font-weight: bold">)
+    </span><span style="color: blue; font-weight: bold">return </span>evaluation<span style="font-weight: bold">.</span>step_to_value<span style="font-weight: bold">()
+
+
+</span><span style="color: blue; font-weight: bold">def </span>call_with_input_file<span style="font-weight: bold">(</span>filename<span style="font-weight: bold">, </span>proc<span style="font-weight: bold">):
+    </span><span style="color: darkred">"""Temporarily set the current input port to the file named by FILENAME,
+    (a string) and call PROC.  Always restores the input port when done."""
+    </span>with scheme_open<span style="font-weight: bold">(</span>filename<span style="font-weight: bold">) </span>as inp<span style="font-weight: bold">:
+        </span>call_with_input_source<span style="font-weight: bold">(</span>inp<span style="font-weight: bold">, </span>proc<span style="font-weight: bold">)
+
+</span><span style="color: blue; font-weight: bold">def </span>call_with_input_source<span style="font-weight: bold">(</span>source<span style="font-weight: bold">, </span>proc<span style="font-weight: bold">):
+    </span><span style="color: darkred">"""Temporarily set the current input port to read lines from the
+    SOURCE (an iterator returning lines or a string).  Always restores
+    the input port when done."""
+    </span><span style="color: blue; font-weight: bold">global </span>input_port
+    input_port0 <span style="font-weight: bold">= </span>input_port
+    <span style="color: blue; font-weight: bold">try</span><span style="font-weight: bold">:
+        </span>input_port <span style="font-weight: bold">= </span>Buffer<span style="font-weight: bold">(</span>tokenize_lines<span style="font-weight: bold">(</span>source<span style="font-weight: bold">))
+        </span>proc<span style="font-weight: bold">()
+    </span><span style="color: blue; font-weight: bold">finally</span><span style="font-weight: bold">:
+        </span>input_port <span style="font-weight: bold">= </span>input_port0
+    
+<span style="color: blue; font-weight: bold">def </span>read_eval_print<span style="font-weight: bold">(</span>prompt <span style="font-weight: bold">= </span><span style="color: blue">None</span><span style="font-weight: bold">):
+    </span><span style="color: darkred">"""Read and evaluate from the current input port until the end of file.
+    If PROMPT is not None, use it to prompt for input and print values of
+    each expression."""
+    </span><span style="color: blue; font-weight: bold">while True</span><span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">try</span><span style="font-weight: bold">:
+            </span><span style="color: blue; font-weight: bold">if </span>prompt <span style="color: blue; font-weight: bold">is not </span><span style="color: blue">None</span><span style="font-weight: bold">:
+                </span><span style="color: blue; font-weight: bold">print</span><span style="font-weight: bold">(</span>prompt<span style="font-weight: bold">, </span>end <span style="font-weight: bold">= </span><span style="color: red">""</span><span style="font-weight: bold">)
+            </span>sys<span style="font-weight: bold">.</span>stdout<span style="font-weight: bold">.</span>flush<span style="font-weight: bold">()
+            </span>expr <span style="font-weight: bold">= </span>scm_read<span style="font-weight: bold">()
+            </span><span style="color: blue; font-weight: bold">if </span>expr <span style="color: blue; font-weight: bold">is </span>THE_EOF_OBJECT<span style="font-weight: bold">:
+                </span><span style="color: blue; font-weight: bold">return
+            </span>val <span style="font-weight: bold">= </span>scm_eval<span style="font-weight: bold">(</span>expr<span style="font-weight: bold">)
+            </span><span style="color: blue; font-weight: bold">if </span>prompt <span style="color: blue; font-weight: bold">is not </span><span style="color: blue">None </span><span style="color: blue; font-weight: bold">and </span>val <span style="color: blue; font-weight: bold">is not </span>UNSPEC<span style="font-weight: bold">:
+                </span>scm_write<span style="font-weight: bold">(</span>val<span style="font-weight: bold">)
+                </span>scm_newline<span style="font-weight: bold">()
+        </span><span style="color: blue; font-weight: bold">except </span>SchemeError as exc<span style="font-weight: bold">:
+            </span><span style="color: blue; font-weight: bold">if not </span>exc<span style="font-weight: bold">.</span>args<span style="font-weight: bold">[</span><span style="color: red">0</span><span style="font-weight: bold">]:
+                </span><span style="color: blue; font-weight: bold">print</span><span style="font-weight: bold">(</span><span style="color: red">"Error"</span><span style="font-weight: bold">, </span>file<span style="font-weight: bold">=</span>sys<span style="font-weight: bold">.</span>stderr<span style="font-weight: bold">)
+            </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+                </span><span style="color: blue; font-weight: bold">print</span><span style="font-weight: bold">(</span><span style="color: red">"Error: {0}"</span><span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span>exc<span style="font-weight: bold">.</span>args<span style="font-weight: bold">[</span><span style="color: red">0</span><span style="font-weight: bold">]), </span>file<span style="font-weight: bold">=</span>sys<span style="font-weight: bold">.</span>stderr<span style="font-weight: bold">)
+            </span>sys<span style="font-weight: bold">.</span>stderr<span style="font-weight: bold">.</span>flush<span style="font-weight: bold">()
+
+</span><span style="color: blue; font-weight: bold">def </span>scm_read<span style="font-weight: bold">():
+    </span><span style="color: blue; font-weight: bold">def </span>read_tail<span style="font-weight: bold">():
+        </span><span style="color: darkred">"""Assuming that input is positioned inside a Scheme list or pair,
+        immediately before a final parenthesis or another item in the list,
+        return the remainder of the list from that point.  Thus, returns
+        (2 3) when positioned at the carat in "(1 ^ 2 3)", returns
+        () when positioned at the carat in "(1 2 3 ^ )", and returns
+        the pair (2 . 3) when positioned at the carat in (1 ^ 2 . 3)."""
+        </span><span style="color: blue; font-weight: bold">if </span>input_port<span style="font-weight: bold">.</span>current <span style="color: blue; font-weight: bold">is </span><span style="color: blue">None</span><span style="font-weight: bold">:
+            </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span><span style="color: red">"unexpected EOF"</span><span style="font-weight: bold">)
+        </span>syntax<span style="font-weight: bold">, </span>val <span style="font-weight: bold">= </span>input_port<span style="font-weight: bold">.</span>current
+        <span style="color: red">"*** YOUR CODE HERE ***"
+        </span>input_port<span style="font-weight: bold">.</span>pop<span style="font-weight: bold">()</span>; <span style="color: blue; font-weight: bold">return </span>NULL
+        <span style="color: blue; font-weight: bold">return </span>Pair<span style="font-weight: bold">(</span>first<span style="font-weight: bold">, </span>rest<span style="font-weight: bold">)
+
+    </span><span style="color: blue; font-weight: bold">if </span>input_port<span style="font-weight: bold">.</span>current <span style="color: blue; font-weight: bold">is </span><span style="color: blue">None</span><span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">return </span>THE_EOF_OBJECT
+
+    syntax<span style="font-weight: bold">, </span>val <span style="font-weight: bold">= </span>input_port<span style="font-weight: bold">.</span>pop<span style="font-weight: bold">()
+
+    </span><span style="color: blue; font-weight: bold">if </span>syntax <span style="font-weight: bold">== </span>NUMERAL<span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">return </span>Number<span style="font-weight: bold">(</span>val<span style="font-weight: bold">)
+    </span><span style="color: blue; font-weight: bold">elif </span>syntax <span style="font-weight: bold">== </span>BOOLEAN<span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">return </span>boolify<span style="font-weight: bold">(</span>val<span style="font-weight: bold">)
+    </span><span style="color: blue; font-weight: bold">elif </span>syntax <span style="font-weight: bold">== </span>SYMBOL<span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">return </span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span>val<span style="font-weight: bold">)
+    </span><span style="color: blue; font-weight: bold">elif </span>syntax <span style="font-weight: bold">== </span><span style="color: red">"'"</span><span style="font-weight: bold">:
+        </span><span style="color: red">"*** YOUR CODE HERE ***"
+        </span><span style="color: blue; font-weight: bold">return </span>FALSE
+    <span style="color: blue; font-weight: bold">elif </span>syntax <span style="font-weight: bold">== </span><span style="color: red">"("</span><span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">return </span>read_tail<span style="font-weight: bold">()
+    </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span><span style="color: red">"unexpected token: {0}"</span><span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span>repr<span style="font-weight: bold">(</span>val<span style="font-weight: bold">)))
+
+</span><span style="color: blue; font-weight: bold">def </span>scm_load<span style="font-weight: bold">(</span>sym<span style="font-weight: bold">):
+    </span>check_type<span style="font-weight: bold">(</span>sym<span style="font-weight: bold">, </span>scm_symbolp<span style="font-weight: bold">, </span><span style="color: red">0</span><span style="font-weight: bold">, </span><span style="color: red">"load"</span><span style="font-weight: bold">)
+    </span>call_with_input_file<span style="font-weight: bold">(</span>str<span style="font-weight: bold">(</span>sym<span style="font-weight: bold">), </span>read_eval_print<span style="font-weight: bold">)
+    </span><span style="color: blue; font-weight: bold">return </span>UNSPEC
+
+<span style="color: green; font-style: italic">##
+## Initialization
+##
+
+</span>_PRIMITIVES <span style="font-weight: bold">= (
+    (</span><span style="color: red">"eqv?"</span><span style="font-weight: bold">, </span>scm_eqvp<span style="font-weight: bold">),
+    (</span><span style="color: red">"eq?"</span><span style="font-weight: bold">, </span>scm_eqp<span style="font-weight: bold">),
+    (</span><span style="color: red">"equal?"</span><span style="font-weight: bold">, </span>scm_equalp<span style="font-weight: bold">),
+    (</span><span style="color: red">"atom?"</span><span style="font-weight: bold">, </span>scm_atomp<span style="font-weight: bold">),
+
+    (</span><span style="color: red">"pair?"</span><span style="font-weight: bold">, </span>scm_pairp<span style="font-weight: bold">),
+    (</span><span style="color: red">"null?"</span><span style="font-weight: bold">, </span>scm_nullp<span style="font-weight: bold">),
+    (</span><span style="color: red">"list?"</span><span style="font-weight: bold">, </span>scm_listp<span style="font-weight: bold">),
+    (</span><span style="color: red">"cons"</span><span style="font-weight: bold">, </span>scm_cons<span style="font-weight: bold">),
+    (</span><span style="color: red">"car"</span><span style="font-weight: bold">, </span>scm_car<span style="font-weight: bold">),
+    (</span><span style="color: red">"cdr"</span><span style="font-weight: bold">, </span>scm_cdr<span style="font-weight: bold">),
+    (</span><span style="color: red">"length"</span><span style="font-weight: bold">, </span>scm_length<span style="font-weight: bold">),
+    (</span><span style="color: red">"set-car!"</span><span style="font-weight: bold">, </span>scm_set_car<span style="font-weight: bold">),
+    (</span><span style="color: red">"set-cdr!"</span><span style="font-weight: bold">, </span>scm_set_cdr<span style="font-weight: bold">),
+    (</span><span style="color: red">"list"</span><span style="font-weight: bold">, </span>scm_list<span style="font-weight: bold">),
+    (</span><span style="color: red">"append"</span><span style="font-weight: bold">, </span>scm_append<span style="font-weight: bold">),
+
+    (</span><span style="color: red">"integer?"</span><span style="font-weight: bold">, </span>scm_integerp<span style="font-weight: bold">),
+    (</span><span style="color: red">"+"</span><span style="font-weight: bold">, </span>scm_add<span style="font-weight: bold">),
+    (</span><span style="color: red">"-"</span><span style="font-weight: bold">, </span>scm_sub<span style="font-weight: bold">),
+    (</span><span style="color: red">"*"</span><span style="font-weight: bold">, </span>scm_mul<span style="font-weight: bold">),
+    (</span><span style="color: red">"/"</span><span style="font-weight: bold">, </span>scm_div<span style="font-weight: bold">),
+    (</span><span style="color: red">"quotient"</span><span style="font-weight: bold">, </span>scm_quo<span style="font-weight: bold">),
+    (</span><span style="color: red">"modulo"</span><span style="font-weight: bold">, </span>scm_modulo<span style="font-weight: bold">),
+    (</span><span style="color: red">"remainder"</span><span style="font-weight: bold">, </span>scm_remainder<span style="font-weight: bold">),
+    (</span><span style="color: red">"floor"</span><span style="font-weight: bold">, </span>scm_floor<span style="font-weight: bold">),
+    (</span><span style="color: red">"ceil"</span><span style="font-weight: bold">, </span>scm_ceil<span style="font-weight: bold">),
+    (</span><span style="color: red">"&lt;"</span><span style="font-weight: bold">, </span>scm_lt<span style="font-weight: bold">),
+    (</span><span style="color: red">"&gt;"</span><span style="font-weight: bold">, </span>scm_gt<span style="font-weight: bold">),
+    (</span><span style="color: red">"="</span><span style="font-weight: bold">, </span>scm_eq<span style="font-weight: bold">),
+    (</span><span style="color: red">"&lt;="</span><span style="font-weight: bold">, </span>scm_le<span style="font-weight: bold">),
+    (</span><span style="color: red">"&gt;="</span><span style="font-weight: bold">, </span>scm_ge<span style="font-weight: bold">),
+
+    (</span><span style="color: red">"boolean?"</span><span style="font-weight: bold">, </span>scm_booleanp<span style="font-weight: bold">),
+    (</span><span style="color: red">"not"</span><span style="font-weight: bold">, </span>scm_not<span style="font-weight: bold">),
+    (</span><span style="color: red">"symbol?"</span><span style="font-weight: bold">, </span>scm_symbolp<span style="font-weight: bold">),
+
+    (</span><span style="color: red">"write"</span><span style="font-weight: bold">, </span>scm_write<span style="font-weight: bold">),
+    (</span><span style="color: red">"display"</span><span style="font-weight: bold">, </span>scm_display<span style="font-weight: bold">),
+    (</span><span style="color: red">"newline"</span><span style="font-weight: bold">, </span>scm_newline<span style="font-weight: bold">),
+    (</span><span style="color: red">"read"</span><span style="font-weight: bold">, </span>scm_read<span style="font-weight: bold">),
+    (</span><span style="color: red">"load"</span><span style="font-weight: bold">, </span>scm_load<span style="font-weight: bold">),
+
+    (</span><span style="color: red">"eval"</span><span style="font-weight: bold">, </span>scm_eval<span style="font-weight: bold">),
+    (</span><span style="color: red">"apply"</span><span style="font-weight: bold">, </span>scm_apply<span style="font-weight: bold">),
+
+    (</span><span style="color: red">"error"</span><span style="font-weight: bold">, </span>scm_error<span style="font-weight: bold">),
+    ([</span><span style="color: red">"exit"</span><span style="font-weight: bold">, </span><span style="color: red">"bye"</span><span style="font-weight: bold">], </span>scm_exit<span style="font-weight: bold">),
+
+    (</span><span style="color: red">"word"</span><span style="font-weight: bold">, </span>sscm_word<span style="font-weight: bold">),
+    (</span><span style="color: red">"first"</span><span style="font-weight: bold">, </span>sscm_first<span style="font-weight: bold">),
+    ([</span><span style="color: red">"bf"</span><span style="font-weight: bold">, </span><span style="color: red">"butfirst"</span><span style="font-weight: bold">], </span>sscm_butfirst<span style="font-weight: bold">),
+    (</span><span style="color: red">"last"</span><span style="font-weight: bold">, </span>sscm_last<span style="font-weight: bold">),
+    ([</span><span style="color: red">"bl"</span><span style="font-weight: bold">, </span><span style="color: red">"butlast"</span><span style="font-weight: bold">], </span>sscm_butlast<span style="font-weight: bold">),
+    ([</span><span style="color: red">"sentence"</span><span style="font-weight: bold">, </span><span style="color: red">"se"</span><span style="font-weight: bold">], </span>sscm_sentence<span style="font-weight: bold">),
+
+    ([</span><span style="color: red">'forward'</span><span style="font-weight: bold">, </span><span style="color: red">'fd'</span><span style="font-weight: bold">], </span>tscm_forward<span style="font-weight: bold">),
+    ([</span><span style="color: red">'backward'</span><span style="font-weight: bold">, </span><span style="color: red">'back'</span><span style="font-weight: bold">, </span><span style="color: red">'bk'</span><span style="font-weight: bold">], </span>tscm_backward<span style="font-weight: bold">),
+    ([</span><span style="color: red">'right'</span><span style="font-weight: bold">, </span><span style="color: red">'rt'</span><span style="font-weight: bold">], </span>tscm_right<span style="font-weight: bold">),
+    ([</span><span style="color: red">'left'</span><span style="font-weight: bold">, </span><span style="color: red">'lt'</span><span style="font-weight: bold">], </span>tscm_left<span style="font-weight: bold">),
+    (</span><span style="color: red">'circle'</span><span style="font-weight: bold">, </span>tscm_circle<span style="font-weight: bold">),
+    ([</span><span style="color: red">'setpos'</span><span style="font-weight: bold">, </span><span style="color: red">'setposition'</span><span style="font-weight: bold">, </span><span style="color: red">'goto'</span><span style="font-weight: bold">], </span>tscm_setposition<span style="font-weight: bold">),
+    ([</span><span style="color: red">'seth'</span><span style="font-weight: bold">, </span><span style="color: red">'setheading'</span><span style="font-weight: bold">], </span>tscm_setheading<span style="font-weight: bold">),
+    ([</span><span style="color: red">'penup'</span><span style="font-weight: bold">, </span><span style="color: red">'pu'</span><span style="font-weight: bold">], </span>tscm_penup<span style="font-weight: bold">),
+    ([</span><span style="color: red">'pendown'</span><span style="font-weight: bold">, </span><span style="color: red">'pd'</span><span style="font-weight: bold">], </span>tscm_pendown<span style="font-weight: bold">),
+    ([</span><span style="color: red">'showturtle'</span><span style="font-weight: bold">, </span><span style="color: red">'st'</span><span style="font-weight: bold">], </span>tscm_showturtle<span style="font-weight: bold">),
+    ([</span><span style="color: red">'hideturtle'</span><span style="font-weight: bold">, </span><span style="color: red">'ht'</span><span style="font-weight: bold">], </span>tscm_hideturtle<span style="font-weight: bold">),
+    (</span><span style="color: red">'clear'</span><span style="font-weight: bold">, </span>tscm_clear<span style="font-weight: bold">),
+    (</span><span style="color: red">'color'</span><span style="font-weight: bold">, </span>tscm_color<span style="font-weight: bold">),
+    (</span><span style="color: red">'begin_fill'</span><span style="font-weight: bold">, </span>tscm_begin_fill<span style="font-weight: bold">),
+    (</span><span style="color: red">'end_fill'</span><span style="font-weight: bold">, </span>tscm_end_fill<span style="font-weight: bold">),
+    (</span><span style="color: red">'exitonclick'</span><span style="font-weight: bold">, </span>tscm_exitonclick<span style="font-weight: bold">),
+    (</span><span style="color: red">'speed'</span><span style="font-weight: bold">, </span>tscm_speed<span style="font-weight: bold">),
+)
+
+</span><span style="color: blue; font-weight: bold">def </span>define_primitives<span style="font-weight: bold">(</span>frame<span style="font-weight: bold">, </span>bindings<span style="font-weight: bold">):
+    </span><span style="color: darkred">"""Enter each of the (name, function) bindings in BINDINGS into FRAME,
+    an environment frame."""
+    </span><span style="color: blue; font-weight: bold">for </span>names<span style="font-weight: bold">, </span>func <span style="color: blue; font-weight: bold">in </span>bindings<span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">if </span>type<span style="font-weight: bold">(</span>names<span style="font-weight: bold">) </span><span style="color: blue; font-weight: bold">is </span>str<span style="font-weight: bold">:
+            </span>names <span style="font-weight: bold">= (</span>names<span style="font-weight: bold">,)
+        </span><span style="color: blue; font-weight: bold">for </span>name <span style="color: blue; font-weight: bold">in </span>names<span style="font-weight: bold">:
+            </span>frame<span style="font-weight: bold">.</span>define<span style="font-weight: bold">(</span>Symbol<span style="font-weight: bold">.</span>string_to_symbol<span style="font-weight: bold">(</span>name<span style="font-weight: bold">),
+                         </span>PrimitiveFunction<span style="font-weight: bold">(</span>func<span style="font-weight: bold">))
+
+</span><span style="color: blue; font-weight: bold">def </span>create_global_environment<span style="font-weight: bold">():
+    </span><span style="color: darkred">"""Initialize the_global_environment to a fresh environment defining the
+    predefined names."""
+    </span><span style="color: blue; font-weight: bold">global </span>the_global_environment
+
+    the_global_environment <span style="font-weight: bold">= </span>EnvironFrame<span style="font-weight: bold">(</span><span style="color: blue">None</span><span style="font-weight: bold">)
+    
+    </span><span style="color: green; font-style: italic"># Uncomment the following line after you finish with Problem 4.
+    # scm_load(Symbol.string_to_symbol(SCHEME_PRELUDE_FILE))
+    </span>define_primitives<span style="font-weight: bold">(</span>the_global_environment<span style="font-weight: bold">, </span>_PRIMITIVES<span style="font-weight: bold">)
+
+</span>input_port <span style="font-weight: bold">= </span><span style="color: blue">None
+
+</span>@main
+<span style="color: blue; font-weight: bold">def </span>run<span style="font-weight: bold">(*</span>argv<span style="font-weight: bold">):
+    </span><span style="color: blue; font-weight: bold">global </span>input_port
+
+    <span style="color: blue; font-weight: bold">if </span>argv<span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">try</span><span style="font-weight: bold">:
+            </span>input_file <span style="font-weight: bold">= </span>open<span style="font-weight: bold">(</span>argv<span style="font-weight: bold">[</span><span style="color: red">0</span><span style="font-weight: bold">])
+        </span><span style="color: blue; font-weight: bold">except </span>IOError as exc<span style="font-weight: bold">:
+            </span><span style="color: blue; font-weight: bold">print</span><span style="font-weight: bold">(</span><span style="color: red">"could not open {0}: {1}"</span><span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span>argv<span style="font-weight: bold">[</span><span style="color: red">0</span><span style="font-weight: bold">], </span>exc<span style="font-weight: bold">.</span>args<span style="font-weight: bold">[</span><span style="color: red">0</span><span style="font-weight: bold">]),
+                  </span>file<span style="font-weight: bold">=</span>sys<span style="font-weight: bold">.</span>stderr<span style="font-weight: bold">)
+            </span>sys<span style="font-weight: bold">.</span>exit<span style="font-weight: bold">(</span><span style="color: red">1</span><span style="font-weight: bold">)
+    </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+        </span>input_file <span style="font-weight: bold">= </span>sys<span style="font-weight: bold">.</span>stdin
+        
+    input_port <span style="font-weight: bold">= </span>Buffer<span style="font-weight: bold">(</span>tokenize_lines<span style="font-weight: bold">(</span>input_file<span style="font-weight: bold">))
+    </span>create_global_environment<span style="font-weight: bold">()
+    </span>read_eval_print<span style="font-weight: bold">(</span><span style="color: red">"scm&gt; "</span><span style="font-weight: bold">)
+</span>
+</pre>
+</body>
+</html>

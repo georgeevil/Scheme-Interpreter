@@ -1,0 +1,878 @@
+<html>
+<head>
+<link href="css/projects.css" rel="stylesheet" type="text/css">
+<title>Scheme</title>
+</head>
+
+<body>
+<html>
+<head>
+<link href="css/projects.css" rel="stylesheet" type="text/css">
+<title>Scheme Interpreter</title>
+</head>
+
+<h2>Project 4: A Scheme Interpreter</h2>
+
+<blockquote>
+<center>
+  <img src="money_tree.png">
+</center>
+  <p><cite><center>Eval calls apply,<br>
+  which just calls eval again!<br>
+  When does it all end?</center></cite></p>
+</blockquote>
+
+<h3>Introduction</h3>
+
+<p>In this project, you will develop an interpreter for a
+(slightly modified) subset of the Scheme language. As
+you proceed, think about the issues that arise in the design of a programming
+language; many quirks of languages are the byproduct of implementation
+decisions in interpreters and compilers.</p>
+
+<p>You will also implement some small programs in Scheme, including the
+<code>count_change</code> function that we studied in lecture.  Scheme is a simple
+but powerful functional language.  You should find that much of what you have
+learned about Python transfers cleanly to Scheme as well as to 
+other programming languages.
+To learn more about Scheme, you can read <a
+  href="http://www.eecs.berkeley.edu/~bh/ss-toc2.html">Brian Harvey and
+  Matthew Wright's <i>Simply Scheme</i> textbook</a> online for free.</p>
+
+<p>This project concludes with an open-ended graphics contest that challenges
+you to produce recursive images in only a few lines of Scheme.  As an example of
+what you might create, the picture above abstractly depicts all the ways of
+making change for $0.50 using U.S. currency.  All flowers appear at the end of
+a branch with length 50. Small angles in a branch indicate an additional coin,
+while large angles indicate a new currency denomination.  In the contest, you
+too will have the chance to unleash your inner recursive artist.</p>
+
+<p>This project includes several files, but all of your changes will be made to
+the first three: 
+<code><a href="scheme.py">scheme.py</a></code>, 
+<code><a href="tests.lg">tests.scm</a></code>, and <code><a
+    href="contest.lg">contest.scm</a></code>. You can download all of the
+project code as a <a href="scheme.zip">zip archive</a>.</p>
+
+<table cellpadding="10">
+  <tr>
+    <td><code><a href="scheme.py">scheme.py</a></code></td>
+    <td>The Scheme evaluator
+    </td>
+  </tr>
+  <tr>
+    <td><code><a href="tests.scm">tests.scm</a></code></td>
+    <td>A set of small test cases and expected outputs
+        for your interpreter</td>
+  </tr>
+  <tr>
+    <td><code><a href="contest.scm">contest.scm</a></code></td>
+    <td>A place to write your contest entry</td>
+  </tr>
+  <tr>
+    <td><code><a href="scheme_tokens.py">scheme_tokens.py</a></code></td>
+    <td>A Tokenizer for scheme</td>
+  </tr>
+  <tr>
+    <td><code><a href="scheme_primitives.py">scheme_primitives.py</a></code></td>
+    <td>Defines primitive Scheme data structures and primitive functions
+      via the Python Library</td>
+  </tr>
+  <tr>
+     <td><code><a href="scheme_prelude.scm">scheme_prelude.scm</a></code></td>
+     <td>A few more standard functions, defined in Scheme and read during 
+         initialization of the interpreter.</td>
+  <tr>
+    <td><code><a href="scheme_test.py">scheme_test.py</a></code></td>
+    <td>A testing framework for Scheme</td>
+  </tr>
+  <tr>
+    <td><code><a href="scheme_utils.py">scheme_utils.py</a></code></td>
+    <td>A few useful utilities.</td>
+  </tr>
+  <tr>
+    <td><code><a href="ucb.py">ucb.py</a></code></td>
+    <td>Utility functions for 61A</td>
+  </tr>
+</table>
+
+<h3>Logistics</h3>
+
+<p>This is a three-part project. As in the previous project, you'll work in a
+team of two people, person A and person B. In each part, you will do some of
+the work separately, but most questions can be completed as a pair. Both
+partners should understand the solutions to all questions.
+
+<p>After completing the first (short) part, you will be able to read and 
+parse Scheme expressions. 
+In the second (long) part, you will develop the interpreter in stages: 
+
+<ol>
+<li> Calls on primitive functions (those implemented in Python);
+<li> Symbol evaluation and simple definition;
+<li> Lambda expressions and complex (function) definitions;
+<li> Calls on functions created by lambda expressions;
+<li> Assignment to variables;
+<li> Conditional expressions;
+<li> The <code>let</code> expression.
+</ol>
+
+Finally, in the third part, you will write Scheme
+programs.</p>
+
+<p>There are 30 possible points, along with 4 extra credit points. The extra
+credit problems are a bit involved; we
+recommend that you complete them all, but only <i>after</i> you have the
+regular stuff working. Finally, participants in the 
+contest can earn up to 3 additional points, along with the glory of
+victory.</p>
+
+<h3>The Scheme Language</h3>
+
+<p>Before you begin working on the project, review what you have learned in
+lecture about the <a
+  href="http://inst.eecs.berkeley.edu/~cs61a/sp12/book/interpretation.html#scheme-language">Scheme
+  language</a>. If you would like to experiment with a working Scheme
+interpreter, look at <a
+  href="http://inst.eecs.berkeley.edu/~scheme">Stk</a>, which is
+installed on instructional machines as <code>stk</code>.</p>  
+
+<p>We've implemented some standard Scheme procedures in Scheme, and you 
+can look at these for examples.  They are in the file <code><a href="scheme_prelude.scm">scheme_prelude.scm</a></code>.
+(The term <i>standard prelude</i> refers to any such collection of
+definitions that is (at least in effect) executed to establish 
+standard definitions before any program is run.)
+
+<p><b>Read-Eval-Print.</b> Run interactively, our interpreter reads
+Scheme expressions from the terminal (the standard input, to be precise),
+evaluates them, and
+prints the results.
+Our interpreter
+uses <code>scm&gt;</code> as the prompt.
+
+<div class="code" data-lang="scheme">
+  scm&gt; 2
+  2
+</div>
+
+<p>The starter code for your Scheme interpreter in <code><a href="scheme.py.html">scheme.py</a></code> can
+successfully evaluate this simple expression, since it consists of a single
+literal numeral.  The rest of the examples in this section <i>will not</i>
+work until you complete various portions of the project.</p> 
+
+<p> Certain expressions are given no specified value in the Scheme standard.
+The STk interpreter (annoyingly, in my opinion) prints <code>okay</code> for some
+of these and prints various random things for others (for example, it prints
+the symbol just defined as the value of the <code>define</code> expression.)
+Our interpreter, by contrast, returns a special value 
+(called <code>UNSPEC</code> in the Python code) that the read-eval-print loop
+does not print (likewise, our Python interpreter does not 
+print <code>None</code>; however <code>UNSPEC</code> is not intended to be used
+in programs, unlike <code>None</code>.)
+
+<p><b>Non-standard Symbols.</b> Our Scheme subset does not have strings.
+Instead, we use Scheme symbols for this purpose.  Officially, symbols in 
+Scheme need only support a limited set of characters.  For example, whitespace,
+parentheses, and apostrophes are not part of this set, for the obvious reason
+that they have other lexical significance as delimiters in Scheme. However, Scheme
+dialects are allowed to introduce various extensions that allow extended 
+symbols containing arbitrary characters.  In our dialect, you can create
+non-standard symbols using "|" (vertical bar) as the quotation character.
+Within such symbols, you can use the standard Python backslash-escapes, with
+the addition of <code>\|</code>, which is how one includes a vertical bar 
+in a non-standard symbol. When printed using the standard Scheme function
+<code>display</code>, the symbols are printed without the quotes and with
+the escape sequences translated.   For example,
+
+<div class="code" data-lang="scheme">
+   scm&gt; '(|ALLCAPS| |a string| |two\nlines| |\|x\||)
+   (|ALLCAPS| |a string| |two\nlines| |\|x\||)
+   scm&gt; (begin (display '(|ALLCAPS| |a string| |two\nlines| |\|x\||)) (newline))
+   (ALLCAPS a string two
+   lines |x|)
+</div>
+
+<p><b>Non-standard Functions.</b> 
+
+<p><b>Load.</b> Our <code>load</code> function differs from standard Scheme in that, since we
+don't have strings, we use a symbol for the file name.  For example
+
+<div class="code" data-lang="scheme">
+   scm&gt; (load 'mytests.scm)
+   scm&gt; (load '|filename with blanks.scm|)
+</div>
+
+<p><b>Exiting.</b> The functions <code>bye</code> or <code>exit</code> 
+terminate the interpreter.  They allow an extra numeric argument giving the 
+Unix exit code (0 for normal exit, non-zero otherwise).
+
+<p><b>Words and Sentences.</b> 
+Mostly for the heck of it, we've added a number of functions from the 
+Simply Scheme extensions used in courses at Berkeley.  Specifically:
+
+<ul>
+<li> <code>(sentence A B ...)</code> concatenates lists, but also allows
+  symbols and numbers as arguments, treating these as one-element lists.
+<li> <code>(word A B ...)</code> concatenates the string representations of
+the symbols and numbers A, B, etc. into a new symbol or number.
+<li> <code>(first A)</code> the first item in (<code>car</code> of) A if it a list, or a symbol or
+number consisting of the first character in A's representation, if A is 
+symbol or number.
+<li> <code>(last A)</code> the last item in A if it a list, or a symbol or
+number consisting of the last character in A's representation, if A is 
+symbol or number.
+<li> <code>(butfirst A)</code> if A is a list, its <code>cdr</code>, and otherwise
+if it is a symbol or number, the symbol or number consisting of all but the
+first character in A's repreentation (abbreviation: <code>bf</code>)
+<li> <code>(butlast A)</code> if A is a list, the list consisting of all but
+its last element, and otherwise
+if it is a symbol or number, the symbol or number consisting of all but the
+last character in A's repreentation (abbreviation: <code>bl</code>).
+</ul>
+
+For example,
+
+<div class="code" data-lang="scheme">
+   scm&gt; (sentence 'a 'b '(c d) '() '(e))
+   (a b c d e)
+   scm&gt; (first 'abc)
+   a
+   scm&gt; (last 'abc)
+   c
+   scm&gt; (bf 'abc)
+   bc
+   scm&gt; (bl 'abc)
+   ab
+   scm&gt; (first '(1 2 3))
+   1
+   scm&gt; (bf '(1 2 3))
+   (2 3)
+   scm&gt; (last '(1 2 3))
+   3
+   scm&gt; (bl '(1 2 3))
+   (1 2)
+</div>
+
+<p><b>Turtle Graphics.</b> Finally, to keep up the traditions of recent years, we've added some
+simple routines for <a href="#turtle">turtle graphics</a>, described later,
+that simply call functions in the
+Python <code>turtle</code> package (whose 
+<a href="http://docs.python.org/py3k/library/turtle.html">documentation</a> we 
+suggest you see; for one thing, it will let you try out turtle-graphics programs
+in Python).
+
+<h3>Testing</h3>
+
+<p>This time, we're letting you come up with tests.  As you complete
+each problem, add tests to the file <code>tests.scm</code> of the 
+constructs you have implemented.
+expressions that you can examine and test to become more familiar with the
+language. Each line that prints output is followed by the expected result as a
+comment. 
+  
+<p>You can run all commands in a file using your Scheme interpreter by passing
+the file name as an argument to <code><a href="scheme.py.html">scheme.py</a></code>.
+
+<div class="code">
+  # python3 scheme.py tests.scm
+</div>
+
+You can also compare the output of your interpreter to the expected output by
+passing the file name to <code><a href="scheme_test.py.html">scheme_test.py</a></code>.
+<div class="code">
+  # python3 scheme_test.py tests.scm
+</div>
+This is a rather useful script (we used it in developing this project and
+its solution, for example).  As you'll see, <code>tests.scm</code> contains
+Scheme expressions interspersed with comments in the form
+<div class="code" data-lang="scheme">
+   ; expect 3
+</div>
+The <code>scheme_test</code> script collects these expected outputs and compares
+them with the actual output from the program, counting and reporting mismatches.
+
+<p>You can even test that your interpreter catches errors.  The problem with
+error tests is that there is no "right" output.  Our script, therefore, 
+only requires that error messages start with "<code>Error</code>".  Any such
+line will match
+<div class="code" data-lang="scheme">
+  ; expect Error
+</div>
+There's an example in the initial <code>tests.scm</code> file.
+
+<p>
+Don't forget to use the <code>trace</code> decorator from the <code>ucb</code>
+module to follow the path of execution in your interpreter.</p> 
+
+<p>As you develop your Scheme interpreter, you may find that Python raises
+various uncaught exceptions when evaluating Scheme expressions.  As a result,
+your Scheme interpreter will crash. Some of these may be the results of bugs
+in your program, and some may be useful indications of errors in user programs.
+The former should be fixed (of course!) and the latter should be caught
+and changed into <code>SchemeError</code> exceptions,
+which are caught and printed as error messages by the Scheme read-eval-print
+loop we've written for you.  Python exceptions that "leak out" to the user
+in raw form
+are errors in your interpreter (tracebacks are for implementors, not civilians).
+
+<h3>Preliminary: Read Some Code</h3>
+
+<p> This project is about modifying a modestly complex piece of existing code.
+In such a situation, it's good to take time at the outset to read what's 
+provided, try to understand what's there, and accumulate questions about parts
+you don't understand <i>before</i> trying to mess around with it.  Indeed,
+a lot of what you take away from this project will simply be what you learn 
+by reading all the code you <i>don't</i> have to write.
+In many
+cases, you'll be able to experiment with parts of it in isolation, simply by
+starting up an interactive Python session and using <code>import</code> to 
+get access to the parts you'd like to play with.  
+
+<p>Take a look over all the files provided with this project (with
+your partner, of course).  Look particularly at
+<code><a href="scheme_primitives.py.html">scheme_primitives.py</a></code>, which defines the basic data
+structures that Scheme programs manipulate (subclasses of
+<code>SchemeValue</code>), and at the classes in
+<code><a href="scheme.py.html">scheme.py</a></code> that define the Scheme values devoted to
+functions (subclasses <code>LambdaFunction</code> (for functions defined
+with <code>lambda</code> and <code>define</code>) and
+<code>PrimitiveFunction</code> (for functions implemented directly in
+Python).  The implementations of primitive functions in
+<code><a href="scheme_primitives.py.html">scheme_primitives.py</a></code> may be useful to you in
+understanding how these data structures work.
+
+<p>In the file <code><a href="scheme.py.html">scheme.py</a></code>, look at <code>read_eval_print</code>, which
+is the top-level function that defines the interpreter's actions.
+Look also at the class <code>EnvironFrame</code>, which represents environment frames
+(just like those in the text and in lecture).  Look at the <code>run</code>
+function and what it calls to see how the interpreter gets initialized and
+how the global environment comes to be.
+
+<p>You won't have to modify <code><a href="scheme_tokens.py.html">scheme_tokens.py</a></code>, but since you will
+be modifying the reader (and since we can ask you anything we want on tests), 
+it might be a good idea to understand the routines it provides and how they
+are used.  At any given time, the "current port" is a <code>Buffer</code> 
+(see <code><a href="scheme_utils.py.html">scheme_utils.py</a></code>), which is used to
+provide a continuous stream of tokens from a token source.  See if you can
+figure out how to look at the token stream produced for a small Scheme file.
+
+<p>Finally, it would be a good idea to start trying to understand
+evaluation, which is concentrated in the class <code>Evaluation</code>
+in <code><a href="scheme.py.html">scheme.py</a></code>.
+
+
+<h3>Part 1: The Reader</h3>
+
+<p>The function <code>scm_read</code> in <code><a href="scheme.py.html">scheme.py</a></code> is intended to
+read Scheme expressions from the "current port" (input source) and return them
+in their internal form (as various types of <code>SchemeValue</code>).  At the
+moment, it only handles numbers, symbols, boolean values, and the end of file.
+
+<p><b>Problem 1</b> (2 pt). Your first task, with your partner, is to complete 
+<code>scm_read</code> by filling in the portions
+responsible for reading pairs, lists, and items quoted by the apostrophe
+(the reader is supposed to treat <code>'S</code> as a synonym for 
+<code>(quote S)</code>).  
+
+<p>The syntax for pairs and lists is
+a left parenthesis, followed by a "tail", defined as
+
+<ul>
+<li> A right parenthesis, indicating the null list, or
+<li> A Scheme expression, <i>H</i>, followed 
+     either by
+   <ul>
+      <li> A period, a Scheme expression, <i>T</i>,
+           and a right parenthesis. 
+      <li> Or (recursively) by a tail, <i>T</i>.
+   </ul>
+   In either case, the indicated value is a pair consisting of <i>H</i> and
+   <i>T</i>.
+</ul>
+
+<p>
+The nested function <code>read_tail</code> reads the tail, returning its value.
+For example, the value returned for "<code>(1 2 . 3)</code>" consists of 
+the value of the tail "<code>1 2 . 3)</code>", which is 
+<ul>
+<li> the pair consisting of the Scheme value <code>1</code> and the value of the tail "<code>2 . 3)</code>", which is
+<ul>
+<li> the pair consisting of the Scheme value <code>2</code> and the Scheme
+     value <code>3</code>.
+</ul>
+</ul>
+Thus, the value denoted 
+is <code>Pair(Number(1), Pair(Number(2), Number(3)))</code>.
+     
+<p>
+As another example, the value returned for "<code>(1 2)</code>" is the value of
+the tail "<code>1 2)</code>", which is 
+
+<ul>
+<li> the pair consisting of the Scheme value <code>1</code> and the value of the tail "<code>2)</code>", which is
+<ul>
+<li> the pair consisting of the Scheme value <code>2</code> and the value
+     of the tail "<code>)</code>", which is the empty list.
+</ul>
+</ul>
+so that the value denoted is <code>Pair(Number(1), Pair(Number(2), NULL))</code>.
+
+<p> You'll be able to test the resulting reader by easily enough, since
+the initial project simply prints the Scheme expressions that it reads
+without evaluating them, so a Unix command like
+<div class="code">
+    # python3 scheme.py tests.scm
+</div>
+will just read <code>tests.scm</code> (or any other file full of Scheme
+expressions), convert them to internal Scheme values,
+and print out these values.
+
+
+<h3>Part 2: The Evaluator</h3>
+
+<p>The heart of the evaluator is the class <code>Evaluation</code>, which
+corresponds roughly to those round-cornered boxes containing expressions and 
+values with links to environment frames:
+
+<center>
+<img src="eval.png">
+</center>
+
+<p>That is, an <code>Evaluation</code> contains an expression being evaluated and
+the environment in which to evaluate it, or else (if <code>.evaluated()</code>
+is true) a value that requires no further evaluation.  Each call to 
+the <code>.step()</code> method on an <code>Evaluation</code> makes some
+progress towards a final value: either it finishes the evaluation (so that
+<code>.evaluated()</code> becomes true), or it performs some of the evaluation,
+and replaces its expression and environment with new ones that, if evaluated,
+will complete the evaluation.  
+
+<p> We do it this way to make tail-recursive programs into iterative ones 
+(Python implementations will eventually run out of space if they pursue
+a tail-recursive program too far, whereas in Scheme programs, tail recursion 
+is supposed to be the same as iteration).  For example, if the expression
+to be evaluated is a call on a primitive function, then one evaluation step
+will evaluate the arguments and call the primitive function, completing the
+evaluation.  However, if the expression is a call on a user-defined function,
+then an evaluation step will evaluate the arguments of the call, then
+replace the <code>Evaluation</code>'s expression with the body of the 
+user-defined function, and its environment with a new local environment 
+defining the parameters (just as we showed in lecture long ago for
+Python).   Subsequent evaluation steps will evaluate the body. Take a look
+at the code for the <code>begin</code> special form (<code>do_begin_form</code>)
+for a simple example of evaluating a list of expressions, returning the 
+value of the last one.
+
+<p><b>Problem 2.</b>
+First, follow the directions in <code>scm_eval</code> to make it 
+actually evaluate expressions as intended.  
+
+<p><b>Problem A2</b> (2 pt). Now we are going to get simple symbol evaluation and
+definition to work. The first part is to handle the missing symbol case in 
+<code>Evaluation.step</code>.  Fill this in to properly evaluate 
+<code>expr</code> when it consists of a single Scheme symbol.  
+There are
+a few values you'll be able to look at: the values of primitive functions,
+such as <code>+</code>.
+
+<p><b>Problem B2</b> (2 pt).
+There are two missing parts in the method <code>do_define_form</code>, which 
+handles the <code>(define&nbsp;...)</code> construct.  Here, we'll do just 
+the first part: handling cases like
+
+<div class="code" data-lang="scheme">
+   (define pi 3.1415926)
+</div>
+
+where the defined symbol appears alone.  Fill in the missing piece to make this
+work.  When combined with your partner's work on A2, you should now be able
+to do things like
+
+<div class="code" data-lang="scheme">
+   scm&gt; (define x 15)
+   scm&gt; (define y x)
+   scm&gt; y
+   15
+</div>
+
+<p> Now that you can created symbols and give them simple values, it should 
+be easy to come up with tests for A2 and B2 to add to <code>tests.scm</code>.
+
+<p><b>Problem 3</b>  (2 pt).
+The function <code>do_call_form</code> is
+supposed to evaluate a function call.  It does so by evaluating the
+operands of the call and then using the <code>apply_step</code>
+method, which is supposed to be defined for the first, "operator", operand.
+At the moment, however, it is incomplete.  Instead, the provided implementation
+just evaluates the operator, and then simply calls the
+<code>apply_step</code> method on it with no arguments.
+
+<p>Also, neither of the <code>apply_step</code> bodies&mdash;that of
+<code>PrimitiveFunction</code> and that of <code>LambdaFunction</code>&mdash;are 
+complete.  Instead, they simply set the <code>Evaluation</code> they are
+passed so that it immediately evaluates to <code>#f</code> (false).
+
+<p>Implement <code>do_call_form</code> and 
+<code>PrimitiveFunction.apply_step</code>
+correctly. After you're finished, your evaluator should be able
+to evaluate calls on primitive functions.
+For example, you should see the following results:</p>
+<div class="code" data-lang="scheme">
+  scm&gt; (+ 2 3)
+  5
+</div>
+(By the way: at this point, you can start calling the various
+<a href="#turtle">turtle graphics</a> functions through your interpreter.)
+
+<p>As always, your implementation should check for errors in the input line!  
+A call such as 
+<div class="code">
+  scm&gt; (quotient 1)
+</div>
+should cause your <code>apply_step</code> procedure to raise a <code>SchemeError</code>, which the <code>read_eval_print</code> function will duly report.
+It turns out to be easy to arrange for this.  The
+<code>quotient</code> is implemented as a call to the Python function 
+<code>scm_quotient</code>.  You might see what Python does when you call a 
+function with the wrong number of arguments and figure out how you can use that
+to solve the problem of detecting and properly reporting errors.
+
+<p> Be sure you've added tests to <code>tests.scm</code> for what you've
+implemented.  
+
+<p><b>Problem 4.</b> Now we turn to user-defined functions, represented by
+values of type <code>LambdaFunction</code>.  When you've finished 
+parts A4 and B4, you should be able to enable the commented-out part of
+<code>create_global_environment</code>, so that initialization of the 
+interpreter will read in the Scheme <i>prelude</i>, a set of definitions of 
+standard functions written in Scheme instead of Python.
+
+<p><b>Problem A4</b> (2 pt).
+Before we can call <code>LambdaFunction</code>s, we must be
+able to create them.  At the moment, the <code>do_lambda_form</code>
+method, which creates <code>LambdaFunction</code> values, is incomplete.
+Finish it.  You can check your work by typing in lambda expressions to 
+the interpreter.  You should see something like this:
+
+<div class="code" data-lang="scheme">
+   scm&gt; (lambda (x) (set! y x) (+ x y))
+   &lt;(lambda (x) (begin (set! y x) (+ x y))), &lt;Global frame at 0x848444c&gt;&gt;
+</div>
+
+For an explanation of why the <code>begin</code> is inserted, see the 
+<code>__init__</code> function for the <code>LambdaFunction</code> class.
+
+<p><b>Problem B4</b> (2 pt). The part of <code>do_define_form</code> that you
+didn't do in B2 handles the shorthand form for defining functions, allowing 
+you to write
+
+<div class="code" data-lang="scheme">
+   scm&gt; (define f (lambda (x) (* x 2)))
+</div>
+as
+<div class="code" data-lang="scheme">
+   scm&gt; (define (f x) (* x 2))
+</div>
+
+<p>Fill in this missing portion of <code>do_define_form</code>.
+
+<p><b>Problem A5</b> (3 pt).
+The <code>make_call_frame</code> method 
+of <code>EnvironFrame</code> is incomplete.  Finish it.  
+
+<p>Don't forget the cases where the
+formal parameter list contains a trailing "varargs" entry, as in 
+<div class="code" data-lang="scheme">
+(define (format port form . args) ...)
+</div>
+One unifying way to handle this case along with the simple lists-of-symbols is
+to consider the formals list as a kind of <i>pattern</i> that is matched against
+the list of argument values.  That is, the formals list <i>matches</i> the
+argument list if you treat each symbol in the formals list as a <i>pattern
+variable</i> or <i>wildcard</i> that matches any expression.  Thus,
+the list of values <code>(1 2 3)</code> has the internal structure 
+<div class="code" data-lang="scheme">
+    Pair(<i>number</i>, Pair(<i>number</i>, Pair(<i>number</i>, NULL)))
+</div>
+while the formals list <code>(a . b)</code> has the structure
+<div class="code" data-lang="scheme">
+    Pair(<i>symbol a</i>, <i>symbol b</i>)
+</div>
+These have the same form if we match symbol <code>a</code> to the number 1
+and symbol <code>b</code> 
+to <code>Pair(<i>number</i>, Pair(<i>number</i>, NULL))</code>
+Likewise, the ordinary formals list <code>(a b c)</code> has the structure
+<div class="code" data-lang="scheme">
+    Pair(<i>symbol a</i>, Pair(<i>symbol b</i>, Pair(<i>symbol c</i>, NULL)))
+</div>
+so it matches the argument list, too.
+
+<p><b>Problem B5</b> (3 pt).
+Likewise, <code>check_formals</code>, the method that checks the 
+formals-list argument to <code>make_call_frame</code>, does nothing at the
+moment.  Fix it so that <code>make_call_frame</code> can assume that 
+its "formals" argument is correctly formed.
+
+<p><b>Problem 6</b> (3 pt).
+At this point, you should be able to get user-defined functions working
+by filling in <code>LambdaFunction.apply_step</code>.  
+Be sure to add tests for Problems 4&ndash;6 to <code>tests.scm</code>
+
+<p><b>Problem 7</b>  (2 pt). Fill in the implementation of
+ <code>do_set_bang_form</code>, which handles the <code>set!</code> 
+special form.  Be sure to include a check that it has the proper form and that
+symbol being assigned to is defined.  And, as usual, be sure to have
+tests in <code>tests.scm</code>
+
+<p><b>Problem 8.</b>
+The basic Scheme conditional constructs are
+<code>if</code>, <code>and</code>, <code>or</code>, and <code>cond</code>.
+In order to handle tail recursion properly, all these methods must be careful
+how they perform their evaluations.  For example, consider the following
+tail-recursive function
+
+<div class="code" data-lang="scheme">
+   (define (contains x L)
+           (cond ((null? L) #f)
+                 ((eqv? x (car L)) #t)
+                 (else (contains x (cdr L)))))
+</div>
+
+If the <code>do_cond_form</code> method were to evaluate the recursive call,
+then the Python interpreter would have an ever-increasing call depth as it
+"cdred" down the list, eventually blowing up if the list were long enough.
+So instead, <code>do_cond_form</code> (and the other conditional forms) must
+use the option of modifying the expression to be evaluated and then returning 
+without actually doing the evaluation.
+
+
+<p><b>Problem A8</b>  (3 pt).
+
+For the first half of the problem, fill in the implementations of 
+<code>do_if_form</code> 
+and <code>do_and_form</code> and test them.  
+
+<p><b>Problem B8</b> (3 pt). For the second half, fill in the 
+implementations of 
+<code>do_cond_form</code> and <code>do_or_form</code> and test them.
+
+<p><b>Problem 9</b> (3 pt).
+The <code>let</code> special form introduces local variables, giving them
+their initial values.  For example,
+
+<div class="code" data-lang="scheme">
+    scm&gt; (define x 3) (define y 10)
+    scm&gt; (let ((x y)
+                  (y (+ x 5)))
+               (set! x (+ x 1))
+               (list x y))
+    (11 8)
+    scm&gt; (list x y)
+    (3 10)
+</div>
+
+In fact, the <code>let</code> statement above is equivalent to the call
+
+<div class="code" data-lang="scheme">
+    scm&gt; ((lambda (x y) (set! x (+ x 1)) (list x y))
+        y (+ x 5))
+</div>
+
+so that the inner <code>x</code> and <code>y</code> are separate from the outer
+ones, and the initialization expressions in the <code>let</code> construct do
+<i>not</i> reference the local variables <code>x</code> and <code>y</code>.
+
+Implement the <code>do_let_form</code> method to have this effect and
+(need we say it at this point?) test it.
+
+<p><b>Extra Credit 1.</b> (2 pt).
+The <code>let*</code> construct is like <code>let</code>, except that 
+each initialization expression "sees" the definitions that have gone 
+before.  Essentially,
+
+<div class="code" data-lang="scheme">
+    (define x 3) (define y 10)
+    (let* ((x y)
+           (y (+ x 5)))
+       (set! x (+ x 1))
+       (list x y))
+</div>
+
+is the same as 
+
+<div class="code" data-lang="scheme">
+    (define x 3) (define y 10)
+    (let ((x y))
+       (let (y (+ x 5))
+          (set! x (+ x 1))
+          (list x y)))
+</div>
+
+and therefore has the value <code>(11 15)</code>, rather than
+<code>(11 8)</code>, as it would for <code>let</code>.  Implement this 
+special form (and, yes, test it).
+
+<p><b>Extra Credit 2</b> (2 pt).
+The <code>case</code> construct is a fancy conditional similar to the
+Java and C/C++ <code>switch</code> statement. Here are some examples from
+the Scheme reference manual:
+
+<div class="code" data-lang="scheme">
+    scm&gt; (case (* 2 3)
+           ((2 3 5 7) 'prime)
+           ((1 4 6 8 9) 'composite))
+    composite
+    scm&gt; (case (car '(c d))
+           ((a e i o u) 'vowel)
+           ((w y) 'semivowel)
+           (else 'consonant))      
+    consonant
+    scm&gt; (define x 3) (define y 10)
+    scm&gt; (case (car '(+ * /))
+           ((+ add) (+ x y))
+           ((* mult) (* x y))
+           ((/ div) (/ x y)))
+    13
+</div>
+
+The first operand is evaluated, but the first element of each of the 
+subsequent operands is not evaluated (it's implicitly quoted).  As for 
+<code>cond</code> the remaining items in the matching operand  are evaluated,
+and the value of the last is the value of the <code>case</code>.  Implement 
+and test this special form.  
+
+<h3>We're There!</h3>
+
+<p>You should have been adding tests to <code>tests.scm</code> as you 
+did each problem.  In any case, make sure you have a reasonably complete
+set, since the readers will be looking at it.  Your program should pass all
+your tests when you (or the autograder) run
+
+<code>
+  # python3 scheme_tests.py tests.scm
+</code>
+
+<p>Your Scheme interpreter implementation is now complete.</p>
+
+
+<h3>Part 3: Write Some Scheme</h3>
+
+<p>Not only is your Scheme interpreter itself a tree-recursive program, but it is
+flexible enough to evaluate <i>other</i> recursive programs. Implement the
+following procedures in Scheme at the bottom of <code><a
+    href="tests.lg">tests.scm</a></code>, along with some calls and
+expected results.
+
+<p><b>Problem 10.</b> The first problems (one for you and one for your
+partner) ask you to implement some familiar operations 
+<i>destructively</i>.
+That means that the <code>cdr</code>s of the original list may be
+changed and no new pairs should be created with <code>cons</code> or
+<code>list</code>.  There's a definition of non-destructive <code>reverse</code>
+in <code>scheme_prelude.scm</code> and there are implementations of 
+<code>filter</code> on Python rlists in 
+<a href="https://inst.eecs.berkeley.edu/~cs61a/sp12/lectures/lect9.pdf">Lecture 9</a>. To see the desired difference between destructive and non-destructive
+operations, consider:
+<div class="code" data-lang="scheme">
+    scm&gt; (define L (list 1 2 3 4))
+    scm&gt; (reverse L)
+    (4 3 2 1)
+    scm&gt; L
+    (1 2 3 4)
+    scm&gt; (reverse! L)
+    (4 3 2 1)
+    scm&gt; L   ; L is now the last element of the reversed list.
+    (1)
+</div>
+
+<p><b>Problem A10</b> (3 pt). Implement the <code>filter!</code> procedure, which
+takes two arguments, a procedure name and a list and
+destructively returns a list
+that contains all elements of the input list for which applying the named
+procedure outputs a true value (i.e., something other than <code>#f</code>).
+Make your program  tail recursive.  It is easy to do this if you use
+your partner's <code>reverse!</code> function.  Try instead to implement it 
+directly.
+
+<p><b>Problem B10</b> (3 pt). Implement the <code>reverse!</code> procedure, whic
+takes a list and returns the reverse of that list destructively.
+
+<p><b>Problem A11</b> (2 pt). Implement the <code>count-change</code> procedure,
+which counts all of the ways to make change for a <code>total</code> amount,
+using coins with various denominations (<code>denoms</code>), but never uses
+more than <code>max-coins</code> in total.  Write your implementation in
+<code>tests.scm</code>. The procedure definition line is provided, along with
+U.S. denominations.</p>
+
+<p><b>Problem B11</b> (2 pt) Implement the <code>count-partitions</code>
+procedure, which counts all the ways to partition a positive integer
+<code>total</code> using only pieces less than or equal to another positive
+integer <code>max-value</code>. The number <code>5</code> has 5 partitions using
+pieces up to a <code>max-value</code> of <code>3</code>:</p>
+
+<div class="code">
+  3, 2 (two pieces)
+  3, 1, 1 (three pieces)
+  2, 2, 1 (three pieces)
+  2, 1, 1, 1 (four pieces)
+  1, 1, 1, 1, 1 (five pieces)
+</div>
+
+<p><b>Problem 12</b> (3 pt). Implement the <code>list-partitions</code>
+procedure, which lists all of the ways to partition a positive integer
+<code>total</code> into at most <code>max-pieces</code> pieces that are all
+less than or equal to a positive integer <code>max-value</code>.  <i>Hint</i>:
+Define a helper function to construct partitions. 
+
+<p><b>Congratulations!</b> You have finished the final project for 61A!
+Assuming your tests are good and you've passed them all, consider 
+yourself a proper computer scientist!</p> Get some sleep.
+
+<h3><a name="turtle">Contest: Recursive Art</a></h3>
+
+<p>We've added a number of primitive drawing procedures that are collectively
+called "turtle graphics".  The <i>turtle</i> represents the state of the drawing
+module, which has a position, an orientation, a pen state (up or down), and a
+pen color. The <code>tcsm_<i>x</i></code> functions in
+<code><a href="scheme_primitives.py.html">scheme_primitives.py</a></code> are the implementations of these
+procedures, and show their parameters with a brief description of each.
+The Python <a
+  href="http://docs.python.org/release/3.2/library/turtle.html">documentation of
+  the turtle module</a> contains more detail.</p>
+
+<p><b>Contest</b> (3 pt). Create a visualization of an iterative or
+recursive process of your choosing, using turtle graphics. Your implementation
+must be written entirely in Scheme, using the interpreter you have built (no fair
+extending the interpreter to do your work in Python, but you can expose other
+turtle graphics functions from Python if you wish).
+
+<p>Prizes will be awarded for the winning entry in each of the following
+categories.  
+
+<ul>
+  <li><b>Featherweight.</b> At most 128 words of Scheme, not including comments
+  and delimiters. 
+
+  <li><b>Heavyweight.</b> At most 1024 words of Scheme, not including comments
+  and delimiters.
+</ul>
+
+<p>Entries (code and results) will be posted online, and winners will be
+selected by popular vote.  The voting instructions will read:
+
+<blockquote>
+Please vote for your favorite entry in this semester's 61A Recursion Exposition
+contest.  The winner should exemplify the principles of elegance, beauty, and
+abstraction that are prized in the Berkeley computer science curriculum.  As an
+academic community, we should strive to recognize and reward merit and
+achievement (translation: please don't just vote for your friends).
+</blockquote>
+
+<p>To improve your chance of success, you are welcome to include a title and
+descriptive <a href="http://en.wikipedia.org/wiki/Haiku">haiku</a> in the
+comments of your entry, which will be included in the voting.
+
+Place your completed entry into the <code><a
+    href="contest.scm">contest.scm</a></code> file.
+
+</body>
+</html>

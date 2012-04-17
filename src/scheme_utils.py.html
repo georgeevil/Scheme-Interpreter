@@ -1,0 +1,122 @@
+<html>
+<head>
+<title>scheme_utils.py</title>
+</head>
+
+<body>
+<h3>scheme_utils.py (<a href="scheme_utils.py">plain text</a>)</h3>
+<hr>
+<pre>
+<span style="color: darkred">"""Utilities used in various modules of the Scheme interpreter."""
+
+</span><span style="color: blue; font-weight: bold">import </span>sys
+
+<span style="color: blue; font-weight: bold">class </span>SchemeError<span style="font-weight: bold">(</span>BaseException<span style="font-weight: bold">):
+    </span><span style="color: darkred">"""General-purpose exception indicating an anticipated error in a
+    Scheme program."""
+
+</span><span style="color: blue; font-weight: bold">def </span>char_set<span style="font-weight: bold">(</span>start<span style="font-weight: bold">, </span>end<span style="font-weight: bold">):
+    </span><span style="color: darkred">"""The set of characters whose codes are &gt;= START and &lt;= END."""
+    </span><span style="color: blue; font-weight: bold">return </span>set<span style="font-weight: bold">(</span>map<span style="font-weight: bold">(</span>chr<span style="font-weight: bold">, </span>range<span style="font-weight: bold">(</span>ord<span style="font-weight: bold">(</span>start<span style="font-weight: bold">), </span>ord<span style="font-weight: bold">(</span>end<span style="font-weight: bold">)+</span><span style="color: red">1</span><span style="font-weight: bold">)))
+
+</span><span style="color: blue; font-weight: bold">def </span>scheme_open<span style="font-weight: bold">(</span>filename<span style="font-weight: bold">):
+    </span><span style="color: darkred">"""If either FILENAME or FILENAME.scm is the name of a valid file,
+    return a Python file opened to it. Otherwise, raise IOError."""
+    </span><span style="color: blue; font-weight: bold">try</span><span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">return </span>open<span style="font-weight: bold">(</span>filename<span style="font-weight: bold">)
+    </span><span style="color: blue; font-weight: bold">except </span>IOError as exc<span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">if </span>filename<span style="font-weight: bold">.</span>endswith<span style="font-weight: bold">(</span><span style="color: red">'.scm'</span><span style="font-weight: bold">):
+            </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span>str<span style="font-weight: bold">(</span>exc<span style="font-weight: bold">))
+    </span><span style="color: blue; font-weight: bold">try</span><span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">return </span>open<span style="font-weight: bold">(</span>filename <span style="font-weight: bold">+ </span><span style="color: red">'.scm'</span><span style="font-weight: bold">)
+    </span><span style="color: blue; font-weight: bold">except </span>IOError as exc<span style="font-weight: bold">:
+        </span><span style="color: blue; font-weight: bold">raise </span>SchemeError<span style="font-weight: bold">(</span>str<span style="font-weight: bold">(</span>exc<span style="font-weight: bold">))
+
+
+</span><span style="color: blue; font-weight: bold">class </span>Buffer<span style="font-weight: bold">(</span>object<span style="font-weight: bold">):
+    </span><span style="color: darkred">"""A Buffer provides a way of accessing a sequence of items concatenated
+    together from lists of items.  Its constructor takes an iterator,
+    called "the source", that returns a list of items each time it is 
+    called, or None to indicate the end of data.  The Buffer in 
+    effect concatenates the sequences returned from its source and then
+    supplies the items from them one at a time through its pop() 
+    method, calling the source for more sequences of items only when
+    needed.  In addition, Buffer provides a .current property to look at the
+    next item to be supplied, without sequencing past it.  The constructor
+    will also accept a list as source, which it treats as an iterator that
+    returns just that list as its single value.
+
+    The motivation is to allow us to conveniently tokenize a line of input at
+    a time, while allowing most of the program to ignore the line boundaries.
+
+    &gt;&gt;&gt; buf = Buffer(['(', 'newline', ')'])
+    &gt;&gt;&gt; buf.current
+    '('
+    &gt;&gt;&gt; buf.pop()
+    '('
+    &gt;&gt;&gt; buf.pop()
+    'newline'
+    &gt;&gt;&gt; buf.current
+    ')'
+    &gt;&gt;&gt; buf.pop()
+    ')'
+    &gt;&gt;&gt; buf.current  # value is now None
+    &gt;&gt;&gt; buf = Buffer(iter( [['15'], ['(', ')']] ))
+    &gt;&gt;&gt; buf.pop()
+    '15'
+    &gt;&gt;&gt; buf.pop()
+    '('
+    &gt;&gt;&gt; buf.pop()
+    ')'
+    &gt;&gt;&gt; buf.pop()  # returns None
+    """
+    </span>__EMPTY <span style="font-weight: bold">= </span>iter<span style="font-weight: bold">(())
+
+    </span><span style="color: blue; font-weight: bold">def </span>__init__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">, </span>source<span style="font-weight: bold">):
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>sequence_number <span style="font-weight: bold">= </span><span style="color: red">0
+        </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>index <span style="font-weight: bold">= </span><span style="color: red">0
+        </span><span style="color: blue; font-weight: bold">if </span>type<span style="font-weight: bold">(</span>source<span style="font-weight: bold">) </span><span style="color: blue; font-weight: bold">is </span>list <span style="color: blue; font-weight: bold">or </span>type<span style="font-weight: bold">(</span>source<span style="font-weight: bold">) </span><span style="color: blue; font-weight: bold">is </span>tuple<span style="font-weight: bold">:
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>list <span style="font-weight: bold">= </span>source
+            <span style="color: blue">self</span><span style="font-weight: bold">.</span>source <span style="font-weight: bold">= </span>Buffer<span style="font-weight: bold">.</span>__EMPTY
+        <span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>source <span style="font-weight: bold">= </span>source
+            <span style="color: blue">self</span><span style="font-weight: bold">.</span>list <span style="font-weight: bold">= ()
+        
+    </span><span style="color: blue; font-weight: bold">def </span>pop<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: darkred">"""Remove the next item from self and return it. If self has
+        exhausted its source, returns None."""
+        </span>current <span style="font-weight: bold">= </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>current
+        <span style="color: blue">self</span><span style="font-weight: bold">.</span>index <span style="font-weight: bold">+= </span><span style="color: red">1
+        </span><span style="color: blue; font-weight: bold">return </span>current
+
+    @property
+    <span style="color: blue; font-weight: bold">def </span>current<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: darkred">"""Return the current element, or None if none exists."""
+        </span><span style="color: blue; font-weight: bold">while </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>index <span style="font-weight: bold">&gt;= </span>len<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>list<span style="font-weight: bold">):
+            </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>index <span style="font-weight: bold">= </span><span style="color: red">0
+            </span><span style="color: blue; font-weight: bold">for </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>list <span style="color: blue; font-weight: bold">in </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>source<span style="font-weight: bold">:
+                </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>sequence_number <span style="font-weight: bold">+= </span><span style="color: red">1
+                </span><span style="color: blue; font-weight: bold">break
+            else</span><span style="font-weight: bold">:
+                </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>list <span style="font-weight: bold">= ()
+                </span><span style="color: blue; font-weight: bold">return </span><span style="color: blue">None
+        </span><span style="color: blue; font-weight: bold">return </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>list<span style="font-weight: bold">[</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>index<span style="font-weight: bold">]
+
+    </span>@property
+    <span style="color: blue; font-weight: bold">def </span>source_location<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: darkred">"""The number of times SELF's source has been called."""
+        </span><span style="color: blue; font-weight: bold">return </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>sequence_number
+
+    <span style="color: blue; font-weight: bold">def </span>__repr__<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">):
+        </span><span style="color: blue; font-weight: bold">if </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>index <span style="font-weight: bold">== </span><span style="color: red">0</span><span style="font-weight: bold">:
+            </span>list_content <span style="font-weight: bold">= </span><span style="color: red">"* " </span><span style="font-weight: bold">+ </span>repr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>list<span style="font-weight: bold">)[</span><span style="color: red">1</span><span style="font-weight: bold">:-</span><span style="color: red">1</span><span style="font-weight: bold">]
+        </span><span style="color: blue; font-weight: bold">else</span><span style="font-weight: bold">:
+            </span>list_content <span style="font-weight: bold">= </span>repr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>list<span style="font-weight: bold">[</span><span style="color: red">0</span><span style="font-weight: bold">:</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>index<span style="font-weight: bold">])[</span><span style="color: red">1</span><span style="font-weight: bold">:-</span><span style="color: red">1</span><span style="font-weight: bold">] + </span><span style="color: red">', * ' </span>\
+                           <span style="font-weight: bold">+ </span>repr<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>list<span style="font-weight: bold">[</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>index<span style="font-weight: bold">:])[</span><span style="color: red">1</span><span style="font-weight: bold">:-</span><span style="color: red">1</span><span style="font-weight: bold">]
+        </span><span style="color: blue; font-weight: bold">return </span><span style="font-weight: bold">(</span><span style="color: red">'&lt;Buffer seq={0}, index={1}, contents=[{2} ...]&gt;'
+                </span><span style="font-weight: bold">.</span>format<span style="font-weight: bold">(</span><span style="color: blue">self</span><span style="font-weight: bold">.</span>sequence_number<span style="font-weight: bold">, </span><span style="color: blue">self</span><span style="font-weight: bold">.</span>index<span style="font-weight: bold">, </span>list_content<span style="font-weight: bold">))
+
+</span>
+</pre>
+</body>
+</html>
