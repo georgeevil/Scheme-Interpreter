@@ -476,8 +476,7 @@ def scm_read():
         return Symbol.string_to_symbol(val)
     elif syntax == "'":
         "*** YOUR CODE HERE ***"
-        
-        return FALSE
+        return Pair(Evaluation._QUOTE_SYM, scm_read())
     elif syntax == "(":
         return read_tail()
     else:
