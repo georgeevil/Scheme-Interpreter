@@ -443,30 +443,25 @@ def scm_read():
     def read_tail():
         """Assuming that input is positioned inside a Scheme list or pair,
         immediately before a final parenthesis or another item in the list,
-        return the remainder of the list from that point.  Thus, returns
-        (2 3) when positioned at the carat in "(1 ^ 2 3)", returns
-        () when positioned at the carat in "(1 2 3 ^ )", and returns
-        the pair (2 . 3) when positioned at the carat in (1 ^ 2 . 3)."""
+        return the remainder of the list from that point.  Thus, 
+        returns (2 3) when positioned at the carat in "(1 ^ 2 3)",
+        returns () when positioned at the carat in "(1 2 3 ^ )",
+        returns the pair (2 . 3) when positioned at the carat in (1 ^ 2 . 3)."""
         if input_port.current is None:
             raise SchemeError("unexpected EOF")
         syntax, val = input_port.current
         "*** YOUR CODE HERE ***"
-        if syntax == ')':
-            input_port.pop()
-            return NULL
-        elif syntax == '.':
-            input_port.pop()
-            val2 = scm_read()
-            syntax1, val1 = input_port.pop()
-            if syntax1 == ')':
-                return val2
-            else:
-                raise SchemeError("unexpected token: {0}".format(repr(val)))
+        if val == '.':
+            input_port.pop() #get rid of the '.'
+            first = scm_read() #pops one at least
+            syntax, val = input_port.pop() #get out the closing parenthesis
+            if val != ')': #check if it is the closing parenthesis
+                raise SchemeError("unexpected token: {0}".format(repr(val))) #oops 
+            return first #return the first only since we have already started making a Pair
+        elif val == ')': #as mentioned in the specs we have a NULL termination at the end on a Pair
+            input_port.pop(); return NULL
         else:
-            first = scm_read()
-            rest = read_tail()
-        #input_port.pop(); return NULL
-        return Pair(first, rest)
+            return Pair(scm_read(), read_tail()) #general case of recursive list
 
     if input_port.current is None:
         return THE_EOF_OBJECT
