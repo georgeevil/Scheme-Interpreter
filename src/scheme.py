@@ -22,6 +22,8 @@ class PrimitiveFunction(SchemeValue):
 
     def apply_step(self, args, evaluation):
         "*** YOUR CODE HERE ***"
+        f = _PRIMITIVES[self.func]
+        f(args)
         evaluation.set_value(FALSE)
 
     def __repr__(self):
@@ -45,6 +47,11 @@ class LambdaFunction(SchemeValue):
 
     def apply_step(self, args, evaluation):
         "*** YOUR CODE HERE ***"
+        #make a new frame 
+        #and bind the arguments with the formals
+        #check the number of arguments to be same as formals
+        #apply (full?) evaluation to the arguments 
+        
         evaluation.set_expr(FALSE)
 
     def write(self, out):
@@ -287,16 +294,17 @@ class Evaluation:
     def do_define_form(self):
         self.check_form(3) #must have at least 3 Exp's
         target = self.expr.nth(1) #in (DEFINE _var_name_ _value_) get DEFINE     
-        if target.symbolp(): #check if DEFINE is a symbol
+        if target.symbolp(): #check if _var_name_ is a symbol
             self.check_form(3,3) #check for ( 1 2 3 ) elements in the form
             "*** YOUR CODE HERE ***"
-            self.env.define(target, self.expr.nth(2))
+            self.env.define(target, LambdaFunction(target.cdr, NULL, self.env))
             self.set_value(UNSPEC)
         elif not target.pairp():
             raise SchemeError("bad argument to define")
         else:
             self.check_formals(target.cdr)
             "*** YOUR CODE HERE ***"
+            self.env.define(target.car, LambdaFunction(target.cdr, self.expr.nth(2), self.env))
             self.set_value(UNSPEC)
 
     def do_begin_form(self):
@@ -371,7 +379,9 @@ class Evaluation:
         self.check_form(1)
         op = self.full_eval(self.expr.car)
         "*** YOUR CODE HERE ***"
-        op.apply_step([], self)
+        print(self.expr)
+        print(self.expr.cdr)
+        op.apply_step(self.expr.cdr, self)
 
     # Utility methods for checking the structure of Scheme values that
     # represent programs.
@@ -396,7 +406,8 @@ class Evaluation:
         the form (sym1 sym2 ... symn) or else (sym1 sym2 ... symn . symrest),
         where each symx is a distinct symbol."""
         "*** YOUR CODE HERE ***"
-        
+        if not scm_listp(formal_list):
+            raise SchemeError("bad formal list")
         pass
 
 def scm_eval(sexpr):
