@@ -297,7 +297,7 @@ class Evaluation:
         if target.symbolp(): #check if _var_name_ is a symbol
             self.check_form(3,3) #check for ( 1 2 3 ) elements in the form
             "*** YOUR CODE HERE ***"
-            self.env.define(target, LambdaFunction(target.cdr, NULL, self.env))
+            self.env.define(target, self.expr.nth(2))
             self.set_value(UNSPEC)
         elif not target.pairp():
             raise SchemeError("bad argument to define")
