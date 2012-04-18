@@ -150,6 +150,7 @@ class Evaluation:
         if expr.symbolp():
             "*** YOUR CODE HERE ***"
             self.set_value(FALSE)
+#            self.set_value(Symbol.string_to_symbol(expr.))
         elif expr.atomp():
             self.set_value(expr)
         elif not scm_listp(expr):
@@ -246,12 +247,48 @@ class Evaluation:
         "*** YOUR CODE HERE ***"
         self.set_value(UNSPEC)
         
+#        
+#/******************************************************************************
+# *
+# * d e f i n e - m o d u l e
+# *
+# ******************************************************************************/
+# 
+#PRIMITIVE STk_define_module(SCM l, SCM env, int len)
+#{
+#  SCM name, module;
+#
+#  ENTER_PRIMITIVE("define-module");
+#  if (!len)             Serror("bad module definition", NIL);
+#  if (NSYMBOLP(name=CAR(l))) Serror("bad name",             name);
+#
+#  module = find_module(name, FALSE, TRUE);
+#
+#  if (len > 1) module_body(module, CDR(l));
+#  STk_last_defined = name
+#;
+#  return UNDEFINED;
+#}
+#
+#
+#PRIMITIVE STk_modulep(SCM obj)
+#{
+#  return MODULEP(obj)? Truth: Ntruth;
+#}
+
+
+        
     def do_define_form(self):
-        self.check_form(3)
-        target = self.expr.nth(1)
-        if target.symbolp():
-            self.check_form(3,3)
+        self.check_form(3) #must have at least 3 Exp's
+        target = self.expr.nth(1) #in (DEFINE _var_name_ _value_) get DEFINE
+        
+        print(self.expr)
+        print(target)
+        
+        if target.symbolp(): #check if DEFINE is a symbol
+            self.check_form(3,3) #check for ( 1 2 3 ) elements in the form
             "*** YOUR CODE HERE ***"
+            self.env.define(target, self.expr.nth(2))
             self.set_value(UNSPEC)
         elif not target.pairp():
             raise SchemeError("bad argument to define")
@@ -370,7 +407,8 @@ def scm_eval(sexpr):
     #    return Evaluation(sexpr, the_global_environment).step_to_value()
     # which is what evaluation is supposed to do.
 
-    return sexpr
+#    return sexpr
+    return Evaluation(sexpr, the_global_environment).step_to_value()
 
 def scm_apply(func, arg0, *other_args):
     """If OTHER_ARGS is empty, apply the function value FUNC to the argument 
