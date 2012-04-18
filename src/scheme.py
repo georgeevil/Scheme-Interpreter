@@ -142,15 +142,21 @@ class Evaluation:
         return self.value is not None
 
     def step(self):
-        """Either complete SELF's computation, causing all remaining
-        side effects and producing a value, or else partially perform the
-        remaining computation, leaving SELF with an expression and environment
-        that denote the remaining computation."""
+        """Either 
+        complete SELF's computation,
+                causing all remaining side effects and producing a value,
+        or else partially perform the remaining computation,
+                leaving SELF with an expression and environment
+                that denote the remaining computation."""
         expr = self.expr
         if expr.symbolp():
             "*** YOUR CODE HERE ***"
-            self.set_value(FALSE)
-#            self.set_value(Symbol.string_to_symbol(expr.))
+            #make a temporary environment and Evaluate
+#            eval_environment = EnvironFrame.make_call_frame(self, formals, vals)
+            #get the value bound to the symbol in that frame
+            #and evaluate it fully upon this access
+            to_be_eval = self.env[expr]
+            self.set_value(self.full_eval(to_be_eval, EnvironFrame(self.env)))
         elif expr.atomp():
             self.set_value(expr)
         elif not scm_listp(expr):
@@ -280,11 +286,7 @@ class Evaluation:
         
     def do_define_form(self):
         self.check_form(3) #must have at least 3 Exp's
-        target = self.expr.nth(1) #in (DEFINE _var_name_ _value_) get DEFINE
-        
-        print(self.expr)
-        print(target)
-        
+        target = self.expr.nth(1) #in (DEFINE _var_name_ _value_) get DEFINE     
         if target.symbolp(): #check if DEFINE is a symbol
             self.check_form(3,3) #check for ( 1 2 3 ) elements in the form
             "*** YOUR CODE HERE ***"
@@ -394,6 +396,7 @@ class Evaluation:
         the form (sym1 sym2 ... symn) or else (sym1 sym2 ... symn . symrest),
         where each symx is a distinct symbol."""
         "*** YOUR CODE HERE ***"
+        
         pass
 
 def scm_eval(sexpr):
