@@ -22,9 +22,8 @@ class PrimitiveFunction(SchemeValue):
 
     def apply_step(self, args, evaluation):
         "*** YOUR CODE HERE ***"
-        f = _PRIMITIVES[self.func]
-        f(args)
-        evaluation.set_value(FALSE)
+        #print(self,self.func)
+        evaluation.set_value(self.func(*args))
 
     def __repr__(self):
         return "PrimitiveFunction({0})".format(repr(self.func))
@@ -47,12 +46,7 @@ class LambdaFunction(SchemeValue):
 
     def apply_step(self, args, evaluation):
         "*** YOUR CODE HERE ***"
-        #make a new frame 
-        #and bind the arguments with the formals
-        #check the number of arguments to be same as formals
-        #apply (full?) evaluation to the arguments 
-        
-        evaluation.set_expr(FALSE)
+        evaluation.set_expr()
 
     def write(self, out):
         print("<(lambda ", file=out, end='')
@@ -149,21 +143,16 @@ class Evaluation:
         return self.value is not None
 
     def step(self):
-        """Either 
-        complete SELF's computation,
-                causing all remaining side effects and producing a value,
-        or else partially perform the remaining computation,
-                leaving SELF with an expression and environment
-                that denote the remaining computation."""
+        """Either complete SELF's computation, causing all remaining
+        side effects and producing a value, or else partially perform the
+        remaining computation, leaving SELF with an expression and environment
+        that denote the remaining computation."""
         expr = self.expr
         if expr.symbolp():
             "*** YOUR CODE HERE ***"
-            #make a temporary environment and Evaluate
-#            eval_environment = EnvironFrame.make_call_frame(self, formals, vals)
-            #get the value bound to the symbol in that frame
-            #and evaluate it fully upon this access
             to_be_eval = self.env[expr]
-            self.set_value(self.full_eval(to_be_eval, EnvironFrame(self.env)))
+            self.set_value(self.full_eval(to_be_eval))
+            #self.set_value(FALSE)
         elif expr.atomp():
             self.set_value(expr)
         elif not scm_listp(expr):
@@ -260,48 +249,20 @@ class Evaluation:
         "*** YOUR CODE HERE ***"
         self.set_value(UNSPEC)
         
-#        
-#/******************************************************************************
-# *
-# * d e f i n e - m o d u l e
-# *
-# ******************************************************************************/
-# 
-#PRIMITIVE STk_define_module(SCM l, SCM env, int len)
-#{
-#  SCM name, module;
-#
-#  ENTER_PRIMITIVE("define-module");
-#  if (!len)             Serror("bad module definition", NIL);
-#  if (NSYMBOLP(name=CAR(l))) Serror("bad name",             name);
-#
-#  module = find_module(name, FALSE, TRUE);
-#
-#  if (len > 1) module_body(module, CDR(l));
-#  STk_last_defined = name
-#;
-#  return UNDEFINED;
-#}
-#
-#
-#PRIMITIVE STk_modulep(SCM obj)
-#{
-#  return MODULEP(obj)? Truth: Ntruth;
-#}
-
-
-        
     def do_define_form(self):
-        self.check_form(3) #must have at least 3 Exp's
-        target = self.expr.nth(1) #in (DEFINE _var_name_ _value_) get DEFINE     
-        if target.symbolp(): #check if _var_name_ is a symbol
-            self.check_form(3,3) #check for ( 1 2 3 ) elements in the form
+        self.check_form(3)
+        target = self.expr.nth(1)
+        if target.symbolp():
+            self.check_form(3,3)
             "*** YOUR CODE HERE ***"
-            self.env.define(target, self.expr.nth(2))
+            # Evaluate self.expr.nth(2) fully and then do the next
+            evaluated_expr = self.full_eval(self.expr.nth(2))
+            self.env.define(target, evaluated_expr)
             self.set_value(UNSPEC)
         elif not target.pairp():
             raise SchemeError("bad argument to define")
         else:
+            # need to be changed
             self.check_formals(target.cdr)
             "*** YOUR CODE HERE ***"
             self.env.define(target.car, LambdaFunction(target.cdr, self.expr.nth(2), self.env))
@@ -379,9 +340,10 @@ class Evaluation:
         self.check_form(1)
         op = self.full_eval(self.expr.car)
         "*** YOUR CODE HERE ***"
-        print(self.expr)
-        print(self.expr.cdr)
-        op.apply_step(self.expr.cdr, self)
+        operands = []
+        for i in range(self.expr.cdr.length()):
+            operands += [self.full_eval(self.expr.cdr.nth(i))]
+        op.apply_step(operands, self)
 
     # Utility methods for checking the structure of Scheme values that
     # represent programs.
@@ -406,8 +368,6 @@ class Evaluation:
         the form (sym1 sym2 ... symn) or else (sym1 sym2 ... symn . symrest),
         where each symx is a distinct symbol."""
         "*** YOUR CODE HERE ***"
-        if not scm_listp(formal_list):
-            raise SchemeError("bad formal list")
         pass
 
 def scm_eval(sexpr):
@@ -418,11 +378,10 @@ def scm_eval(sexpr):
     #    python3 scheme.py tests.scm
     # (or other file full of Scheme expressions).  When you are finished
     # with Problem 1, replace the return statement below with 
-    #    return Evaluation(sexpr, the_global_environment).step_to_value()
+    return Evaluation(sexpr, the_global_environment).step_to_value()
     # which is what evaluation is supposed to do.
 
-#    return sexpr
-    return Evaluation(sexpr, the_global_environment).step_to_value()
+    #return sexpr
 
 def scm_apply(func, arg0, *other_args):
     """If OTHER_ARGS is empty, apply the function value FUNC to the argument 
@@ -492,29 +451,35 @@ def read_eval_print(prompt = None):
             sys.stderr.flush()
 
 def scm_read():
+    #BEGIN read_tail()
     def read_tail():
         """Assuming that input is positioned inside a Scheme list or pair,
         immediately before a final parenthesis or another item in the list,
-        return the remainder of the list from that point.  Thus, 
-        returns (2 3) when positioned at the carat in "(1 ^ 2 3)",
-        returns () when positioned at the carat in "(1 2 3 ^ )",
-        returns the pair (2 . 3) when positioned at the carat in (1 ^ 2 . 3)."""
+        return the remainder of the list from that point.  Thus, returns
+        (2 3) when positioned at the carat in "(1 ^ 2 3)", returns
+        () when positioned at the carat in "(1 2 3 ^ )", and returns
+        the pair (2 . 3) when positioned at the carat in (1 ^ 2 . 3)."""
         if input_port.current is None:
             raise SchemeError("unexpected EOF")
         syntax, val = input_port.current
         "*** YOUR CODE HERE ***"
-        if val == '.':
-            input_port.pop() #get rid of the '.'
-            first = scm_read() #pops one at least
-            syntax, val = input_port.pop() #get out the closing parenthesis
-            if val != ')': #check if it is the closing parenthesis
-                raise SchemeError("unexpected token: {0}".format(repr(val))) #oops 
-            return first #return the first only since we have already started making a Pair
-        elif val == ')': #as mentioned in the specs we have a NULL termination at the end on a Pair
-            input_port.pop(); return NULL
+        if syntax == ')':
+            input_port.pop()
+            return NULL
+        elif syntax == '.':
+            input_port.pop()
+            val2 = scm_read()
+            syntax1, val1 = input_port.pop()
+            if syntax1 == ')':
+                return val2
+            else:
+                raise SchemeError("unexpected token: {0}".format(repr(val)))
         else:
-            return Pair(scm_read(), read_tail()) #general case of recursive list
-
+            first = scm_read()
+            rest = read_tail()
+        #input_port.pop(); return NULL
+        return Pair(first, rest)
+    #END read_tail()
     if input_port.current is None:
         return THE_EOF_OBJECT
 
@@ -528,7 +493,8 @@ def scm_read():
         return Symbol.string_to_symbol(val)
     elif syntax == "'":
         "*** YOUR CODE HERE ***"
-        return Pair(Evaluation._QUOTE_SYM, scm_read())
+        return  Pair(Evaluation._QUOTE_SYM, scm_read())
+        #return FALSE
     elif syntax == "(":
         return read_tail()
     else:
