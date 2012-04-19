@@ -25,7 +25,7 @@ class PrimitiveFunction(SchemeValue):
         try:
             evaluation.set_value(self.func(*args))
         except TypeError as err:
-            raise SchemeError(':' + str(err))
+            raise SchemeError("type error: {0}".format(str(self)))
 
     def __repr__(self):
         return "PrimitiveFunction({0})".format(repr(self.func))
