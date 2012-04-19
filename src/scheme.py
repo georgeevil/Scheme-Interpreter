@@ -22,8 +22,10 @@ class PrimitiveFunction(SchemeValue):
 
     def apply_step(self, args, evaluation):
         "*** YOUR CODE HERE ***"
-        #print(self,self.func)
-        evaluation.set_value(self.func(*args))
+        try:
+            evaluation.set_value(self.func(*args))
+        except TypeError as err:
+            raise SchemeError(':' + str(err))
 
     def __repr__(self):
         return "PrimitiveFunction({0})".format(repr(self.func))
@@ -46,7 +48,13 @@ class LambdaFunction(SchemeValue):
 
     def apply_step(self, args, evaluation):
         "*** YOUR CODE HERE ***"
-        evaluation.set_expr()
+        #make a new frame 
+        #and bind the arguments with the formals
+        #check the number of arguments to be same as formals
+        #apply (full?) evaluation to the arguments 
+        lambda_environment = EnvironFrame(evaluation.env)
+        
+        evaluation.set_expr(FALSE)
 
     def write(self, out):
         print("<(lambda ", file=out, end='')
@@ -143,13 +151,19 @@ class Evaluation:
         return self.value is not None
 
     def step(self):
-        """Either complete SELF's computation, causing all remaining
-        side effects and producing a value, or else partially perform the
-        remaining computation, leaving SELF with an expression and environment
-        that denote the remaining computation."""
+        """Either 
+        complete SELF's computation,
+                causing all remaining side effects and producing a value,
+        or else partially perform the remaining computation,
+                leaving SELF with an expression and environment
+                that denote the remaining computation."""
         expr = self.expr
         if expr.symbolp():
             "*** YOUR CODE HERE ***"
+            #make a temporary environment and Evaluate
+#            eval_environment = EnvironFrame.make_call_frame(self, formals, vals)
+            #get the value bound to the symbol in that frame
+            #and evaluate it fully upon this access
             to_be_eval = self.env[expr]
             self.set_value(self.full_eval(to_be_eval))
             #self.set_value(FALSE)
@@ -455,31 +469,26 @@ def scm_read():
     def read_tail():
         """Assuming that input is positioned inside a Scheme list or pair,
         immediately before a final parenthesis or another item in the list,
-        return the remainder of the list from that point.  Thus, returns
-        (2 3) when positioned at the carat in "(1 ^ 2 3)", returns
-        () when positioned at the carat in "(1 2 3 ^ )", and returns
-        the pair (2 . 3) when positioned at the carat in (1 ^ 2 . 3)."""
+        return the remainder of the list from that point.  Thus, 
+        returns (2 3) when positioned at the carat in "(1 ^ 2 3)",
+        returns () when positioned at the carat in "(1 2 3 ^ )",
+        returns the pair (2 . 3) when positioned at the carat in (1 ^ 2 . 3)."""
         if input_port.current is None:
             raise SchemeError("unexpected EOF")
         syntax, val = input_port.current
         "*** YOUR CODE HERE ***"
-        if syntax == ')':
-            input_port.pop()
-            return NULL
-        elif syntax == '.':
-            input_port.pop()
-            val2 = scm_read()
-            syntax1, val1 = input_port.pop()
-            if syntax1 == ')':
-                return val2
-            else:
-                raise SchemeError("unexpected token: {0}".format(repr(val)))
+        if val == '.':
+            input_port.pop() #get rid of the '.'
+            first = scm_read() #pops one at least
+            syntax, val = input_port.pop() #get out the closing parenthesis
+            if val != ')': #check if it is the closing parenthesis
+                raise SchemeError("unexpected token: {0}".format(repr(val))) #oops 
+            return first #return the first only since we have already started making a Pair
+        elif val == ')': #as mentioned in the specs we have a NULL termination at the end on a Pair
+            input_port.pop(); return NULL
         else:
-            first = scm_read()
-            rest = read_tail()
-        #input_port.pop(); return NULL
-        return Pair(first, rest)
-    #END read_tail()
+            return Pair(scm_read(), read_tail()) #general case of recursive list
+
     if input_port.current is None:
         return THE_EOF_OBJECT
 
@@ -603,7 +612,7 @@ def create_global_environment():
     the_global_environment = EnvironFrame(None)
     
     # Uncomment the following line after you finish with Problem 4.
-    # scm_load(Symbol.string_to_symbol(SCHEME_PRELUDE_FILE))
+    scm_load(Symbol.string_to_symbol(SCHEME_PRELUDE_FILE))
     define_primitives(the_global_environment, _PRIMITIVES)
 
 input_port = None
