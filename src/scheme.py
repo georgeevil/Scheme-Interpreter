@@ -133,26 +133,42 @@ class EnvironFrame:
         list_index = 0
         
         if type(formals) == Pair:
-            first = formals.cdr
-            last = formals.cdr
+            first = formals.car
+            rest = formals.cdr
         else:
+            #one more chance to get an exception from a bad argument list
             raise SchemeError("argument error: {0}".format(str(formals)))
 
-        
-        while last != NULL and list_index < list_len:
-            last = formals.cdr
+        while list_index < list_len and first != NULL:
+            if list_index < list_len:
+                new_frame.define(first, vals[list_index])
+            else:
+                raise SchemeError("too few arguments: {0},{1}".format(str(vals), str(formals)))
+            if type(rest) == Symbol:
+#                if list_index == list_index -1: #case where there is only one 
+#                    new_frame.define(rest, vals[list_index])
+#                else:
+                new_frame.define(rest, vals[list_index:])
+                return
             
-
-        if formals.last().nullp() and formals.length() == vals.length():
-            for i in range(formals.length()):
-                new_frame.define(formals[i], vals[i])
-        elif formals.last().symbolp() and formals.length() <= vals.length():
-            for i in range(formals.length()):
-                if i == formals.length() - 1:
-                   new_frame.define(formals[i], vals[i:])
-                else:
-                   new_frame.define(formals[i], vals[i])
-                   
+            if rest != NULL:
+                first = rest.car
+                rest = rest.cdr
+                list_index += 1
+            else:
+                break
+#    Toby's Q4A
+#        if formals.last().nullp() and formals.length() == vals.length():
+#            for i in range(formals.length()):
+#                new_frame.define(formals[i], vals[i])
+#        elif formals.last().symbolp() and formals.length() <= vals.length():
+#            for i in range(formals.length()):
+#                if i == formals.length() - 1:
+#                    new_frame.define(formals[i], vals[i:])
+#                else:
+#                    new_frame.define(formals[i], vals[i])
+     
+     # George's initial part that is a bit buggier than the current              
 #        new_frame = EnvironFrame(self)
 #        p = formals;
 #        vals_len_counter = len(vals)
@@ -257,14 +273,15 @@ class Evaluation:
         print(self.expr)
         print(self.expr.cdr)
         print(self.expr.cdr.car)
-        print(self.expr.cdr.cdr)
+        print(self.expr.cdr.cdr.car)
         
-        self.set_value(LambdaFunction(self.expr.cdr.car, self.expr.cdr.cdr, self.env))
+        self.set_value(LambdaFunction(self.expr.cdr.car, self.expr.cdr.cdr.car, self.env))
 
     def do_if_form(self):
         self.check_form(4, 4)
-        cond = self.full_eval(self.expr.cdr.car)
+#        cond = self.full_eval(self.expr.cdr.car)
         "*** YOUR CODE HERE ***"
+        cond = self.full_eval(self.expr.cdr.car, self.env)
         self.set_expr(FALSE)
                         
   
@@ -413,6 +430,9 @@ class Evaluation:
         op = self.full_eval(self.expr.car)
         "*** YOUR CODE HERE ***"
         #why operands are in a Python list?
+        
+        ### MAKE A NEW ENVIRONMENT ??? 
+        
         operands = []
         for i in range(self.expr.cdr.length()):
             operands += [self.full_eval(self.expr.cdr.nth(i))]
