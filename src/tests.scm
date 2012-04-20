@@ -53,11 +53,27 @@
 
 ; YOUR TEST CASES HERE
 
+(define x (* 2 2))
+; expect 4
+
+
+
+(define x (lambda (z y) (+ 1 z) z (* 2 y)))
+; expect 
+
+(x 1 2)
+; expect 4
+
+(define x (lambda (z y) ((+ 1 z) z (* 2 y))))
+; expect 
+
+; expect Error: eval: bad function in : ((+ 1 z) z (* 2 y))
 
 
 ; Problem A4, B4, A5, B5, and 6 (calls on user-defined functions)
 
 ; YOUR TEST CASES HERE
+
 
 
 ; Problem 7 (set!)
