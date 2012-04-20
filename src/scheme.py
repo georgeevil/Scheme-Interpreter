@@ -271,15 +271,16 @@ class Evaluation:
         self.check_formals(self.expr.cdr.car)
         "*** YOUR CODE HERE ***"
         #Debug printouts
-        print(self.expr)
-        print(self.expr.cdr)
-        print(self.expr.cdr.car)
-        print(self.expr.cdr.cdr)
-#        temp_lambda = LambdaFunction(self.expr.cdr.car, Pair(Evaluation._BEGIN_SYM, self.expr.cdr.cdr), self.env)
+#        print(self.expr)
+#        print(self.expr.cdr)
+#        print(self.expr.cdr.car)
+#        print(self.expr.cdr.cdr)
+        temp_lambda = LambdaFunction(self.expr.cdr.car, Pair(Evaluation._BEGIN_SYM, self.expr.cdr.cdr), self.env)
+        self.set_value(temp_lambda)
+
 #        print (str(temp_lambda.body))
-        self.set_value(LambdaFunction(self.expr.cdr.car, self.expr.cdr.cdr.car, self.env))
+#        self.set_value(LambdaFunction(self.expr.cdr.car, self.expr.cdr.cdr.car, self.env))
 #        self.set_value(LambdaFunction(self.expr.cdr.car, Pair(Evaluation._BEGIN_SYM, self.expr.cdr.cdr), self.env))
-#        self.set_value(temp_lambda)
         
     def do_if_form(self):
         self.check_form(4, 4)
@@ -337,13 +338,7 @@ class Evaluation:
 
     def do_set_bang_form(self):
         self.check_form(3, 3)
-        "*** YOUR CODE HERE ***"
-        
-        #DEBUG PRINTOUT
-        print(self.expr.nth(0))
-        print(self.expr.nth(1))
-        print(self.expr.nth(2))
-        
+        "*** YOUR CODE HERE ***"               
         if self.expr.nth(1).symbolp():
             try:
                 self.env[self.expr.nth(1)]
