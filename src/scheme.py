@@ -22,6 +22,7 @@ class PrimitiveFunction(SchemeValue):
 
     def apply_step(self, args, evaluation):
         "*** YOUR CODE HERE ***"
+        #print(self,self.func)
         try:
             evaluation.set_value(self.func(*args))
         except TypeError as err:
@@ -52,9 +53,17 @@ class LambdaFunction(SchemeValue):
         #and bind the arguments with the formals
         #check the number of arguments to be same as formals
         #apply (full?) evaluation to the arguments 
-        lambda_environment = EnvironFrame(evaluation.env)
+
+#        lambda_environment = EnvironFrame(evaluation.env)
+#        for i in range(0,len(args)):
+#            lambda_environment.define(self.formals.nth(i), args[i])
         
-        evaluation.set_expr(FALSE)
+        lambda_environment = self.env.make_call_frame(self.formals, args)
+        
+        #go over the body and evaluate from first to last with the environment provided
+        eval = Evaluation(self.body, lambda_environment)
+        
+        evaluation.set_expr(eval.step_to_value())
 
     def write(self, out):
         print("<(lambda ", file=out, end='')
@@ -101,20 +110,62 @@ class EnvironFrame:
         raise SchemeError("unknown identifier: {0}".format(str(sym)))
 
     def make_call_frame(self, formals, vals):
-        """A new local frame attached to SELF in which the symbols in
-        the Scheme formal parameter list FORMALS are bound to the
-        Scheme values in the Python list VALS.  FORMALS has either of the
-        formats allowed by the Evaluation.check_formals method.  If
-        the last cdr in FORMALS is a null list (that is, if FORMALS is
-        an ordinary Scheme list), then the number of formals must be the same
-        as the number of VALS, and each symbol in FORMALS is bound to the
-        corresponding value in VALS.  If the last cdr in FORMALS is a
+        """A new local frame attached to SELF 
+        in which the 
+            symbols in the Scheme formal parameter list 
+            FORMALS are bound to the Scheme values 
+            in the Python list VALS.  
+                FORMALS has either of the formats allowed by the Evaluation.check_formals method.  
+                If the last cdr in FORMALS is a null list
+                (that is, if FORMALS is an ordinary Scheme list),
+                    then the number of formals must be the same
+                    as the number of VALS, and each symbol in FORMALS is bound to the
+                    corresponding value in VALS.  If the last cdr in FORMALS is a
         symbol, then the number of values in VALS  must be at least as large as
         the number of preceding ("normal") formal symbols, and the last
         formal symbol is bound to a Scheme list containing the remaining
         values in VALS (which may be 0)."""
-        "*** YOUR CODE HERE ***"
-        return EnvironFrame(self)
+        
+        #assume vals is a list []
+        Evaluation.check_formals(formals)
+        new_frame = EnvironFrame(self)
+        list_len = len(vals)
+        list_index = 0
+        
+        if type(formals) == Pair:
+            first = formals.cdr
+            last = formals.cdr
+        else:
+            raise SchemeError("argument error: {0}".format(str(formals)))
+
+        
+        while last != NULL and list_index < list_len:
+            last = formals.cdr
+            
+
+        if formals.last().nullp() and formals.length() == vals.length():
+            for i in range(formals.length()):
+                new_frame.define(formals[i], vals[i])
+        elif formals.last().symbolp() and formals.length() <= vals.length():
+            for i in range(formals.length()):
+                if i == formals.length() - 1:
+                   new_frame.define(formals[i], vals[i:])
+                else:
+                   new_frame.define(formals[i], vals[i])
+                   
+#        new_frame = EnvironFrame(self)
+#        p = formals;
+#        vals_len_counter = len(vals)
+#        while p != NULL or p != None or vals_len_counter > 0:
+#            
+#            if p.cdr == NULL:
+#                if vals_len_counter != 0:
+#                    raise SchemeError("malformed argument list: {0}".format(str(vals)))
+#                
+#                break
+
+        return new_frame
+
 
     def define(self, sym, val):
         """Define Scheme symbol SYM to have value VAL in SELF."""
@@ -203,7 +254,12 @@ class Evaluation:
         self.check_form(3)
         self.check_formals(self.expr.cdr.car)
         "*** YOUR CODE HERE ***"
-        self.set_value(FALSE)
+        print(self.expr)
+        print(self.expr.cdr)
+        print(self.expr.cdr.car)
+        print(self.expr.cdr.cdr)
+        
+        self.set_value(LambdaFunction(self.expr.cdr.car, self.expr.cdr.cdr, self.env))
 
     def do_if_form(self):
         self.check_form(4, 4)
@@ -261,6 +317,8 @@ class Evaluation:
     def do_set_bang_form(self):
         self.check_form(3, 3)
         "*** YOUR CODE HERE ***"
+        val = self.full_eval(self.expr.nth(2))
+        self.env.__setitem__(self.expr.nth(1), val)
         self.set_value(UNSPEC)
         
     def do_define_form(self):
@@ -354,6 +412,7 @@ class Evaluation:
         self.check_form(1)
         op = self.full_eval(self.expr.car)
         "*** YOUR CODE HERE ***"
+        #why operands are in a Python list?
         operands = []
         for i in range(self.expr.cdr.length()):
             operands += [self.full_eval(self.expr.cdr.nth(i))]
@@ -382,7 +441,26 @@ class Evaluation:
         the form (sym1 sym2 ... symn) or else (sym1 sym2 ... symn . symrest),
         where each symx is a distinct symbol."""
         "*** YOUR CODE HERE ***"
-        pass
+        #assume it's a list per upper definition
+        if type (formal_list) != Pair:
+            raise SchemeError("badly formed argument list {0}".format(repr(formal_list)))
+        temp = formal_list
+        if temp.car == NULL: #initially empty list OK
+            return
+        elif type(temp.cdr) == Symbol and type(temp.car) == Symbol:
+            return
+        
+        while True:
+            #check if the first value is a symbol and then check the last one if it is
+            if type(temp.cdr) == Symbol and type(temp.car) == Symbol: #irregular list
+                return
+            elif temp.cdr == NULL: #end of regular list OK
+                return
+            elif type(temp.cdr) == Pair: #continue
+                temp = temp.cdr
+            else:
+                raise SchemeError("badly formed argument list {0}".format(repr(formal_list)))
+        return
 
 def scm_eval(sexpr):
     # To begin with, this function simply returns SEXPR unchanged, without
@@ -477,18 +555,23 @@ def scm_read():
             raise SchemeError("unexpected EOF")
         syntax, val = input_port.current
         "*** YOUR CODE HERE ***"
-        if val == '.':
-            input_port.pop() #get rid of the '.'
-            first = scm_read() #pops one at least
-            syntax, val = input_port.pop() #get out the closing parenthesis
-            if val != ')': #check if it is the closing parenthesis
-                raise SchemeError("unexpected token: {0}".format(repr(val))) #oops 
-            return first #return the first only since we have already started making a Pair
-        elif val == ')': #as mentioned in the specs we have a NULL termination at the end on a Pair
-            input_port.pop(); return NULL
+        if syntax == ')':
+            input_port.pop()
+            return NULL
+        elif syntax == '.':
+            input_port.pop()
+            val2 = scm_read()
+            syntax1, val1 = input_port.pop()
+            if syntax1 == ')':
+                return val2
+            else:
+                raise SchemeError("unexpected token: {0}".format(repr(val)))
         else:
-            return Pair(scm_read(), read_tail()) #general case of recursive list
-
+            first = scm_read()
+            rest = read_tail()
+        #input_port.pop(); return NULL
+        return Pair(first, rest)
+    #END read_tail()
     if input_port.current is None:
         return THE_EOF_OBJECT
 
