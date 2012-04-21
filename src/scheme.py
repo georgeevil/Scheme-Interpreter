@@ -285,23 +285,14 @@ class Evaluation:
     def do_if_form(self):
         self.check_form(4, 4)
 #        (if COND-EXPR TRUE-EXPR OPTIONAL-FALSE-EXPR)
-#        cond = self.full_eval(self.expr.cdr.car)
         "*** YOUR CODE HERE ***"
-#        cond = Evaluation(self.expr.cdr.car, self.env)
-#        print(self.expr.cdr.car) #this is the condition
-#        print(self.expr.cdr.cdr) #this is the rest of the expressions
-#        print(self.expr.cdr.cdr.car) #this is the true evaluation condition
-#        print(self.expr.cdr.cdr.cdr.car)
-        
+
         cond = self.full_eval(self.expr.cdr.car)
-        print("IF Condition evaluated to ", str(cond))
         
-        if cond == TRUE:
-#            print("True Evaluating ", str(self.expr.cdr.cdr.car))
+        if cond != FALSE:
             self.set_expr(self.full_eval(self.expr.cdr.cdr.car))
         else:
-#            print("False Evaluating ", str(self.expr.cdr.cdr.cdr.car))
-            self.set_expr(self.full_eval(self.expr.cdr.cdr.cdr.car))
+            self.set_expr(self.full_eval(self.expr.cdr.cdr.car))
                         
   
     def do_and_form(self):
@@ -314,10 +305,10 @@ class Evaluation:
         "*** YOUR CODE HERE ***"
         temp = self.expr.cdr
         bool = self.full_eval(temp.car)
-        while bool == TRUE:
+        while bool != FALSE:
             if temp.cdr == NULL:
-                self.set_expr(TRUE)
-                return 
+                self.set_expr(temp.car)
+                return bool
             else: 
                 temp = temp.cdr
                 bool = self.full_eval(temp.car)
@@ -341,7 +332,7 @@ class Evaluation:
                 temp = temp.cdr
                 bool = self.full_eval(temp.car)
 
-        self.set_expr(TRUE)
+        self.set_expr(bool)
 
     def do_cond_form(self):
         self.check_form(1)

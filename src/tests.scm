@@ -42,6 +42,7 @@
 ;   x to (e.g.) 'x
 
 ; YOUR TEST CASES HERE
+'x
 
 
 ; Problem A2 and B2 (symbol evaluation and simple defines)
@@ -85,11 +86,45 @@
 
 ; YOUR TEST CASES HERE
 
+(if 1 2 3)
+; expect 2
+
+(if (if (if #t 1 2) '(1) '(2)) (+ 1 1) (- 1 1))
+; expect 2
+
+(if (> 2 1) (quote t) ('s))
+; expect t
+
+(if #t () ())
+; expect ()
+
+(and)
+; expect #t
+
+scm> (and and)
+; expect Error: unknown identifier: and
+
+(and 1 2 3)
+; expect 3
 
 ; Problem B8 (cond, or)
 
 ; YOUR TEST CASES HERE
 
+(or (+ 1 1) (and (> 1 1) (< (+ 1 1) (+ 2 2))) (> 5 1))
+; expect #t
+
+(or)
+; expect #f
+
+(or #f #f #f (< 1 2))
+; expect #t
+
+(or (< 2 1) (= 2 1) (= 2 2))
+; expect #t
+
+(or #f #f #f (< 2 1))
+; expect #f
 
 ; Problem 9 (let)
 
