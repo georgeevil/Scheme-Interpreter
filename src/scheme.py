@@ -330,9 +330,18 @@ class Evaluation:
         if self.expr.length() == 1:
             self.set_value(FALSE)
             return
+        "*** YOUR CODE HERE ***" 
+        temp = self.expr.cdr
+        bool = self.full_eval(temp.car)
+        while bool == FALSE:
+            if temp.cdr == NULL:
+                self.set_expr(FALSE)
+                return 
+            else: 
+                temp = temp.cdr
+                bool = self.full_eval(temp.car)
 
-        "*** YOUR CODE HERE ***"
-        self.set_expr(FALSE)
+        self.set_expr(TRUE)
 
     def do_cond_form(self):
         self.check_form(1)
