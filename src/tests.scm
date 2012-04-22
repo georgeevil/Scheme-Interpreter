@@ -42,8 +42,12 @@
 ;   x to (e.g.) 'x
 
 ; YOUR TEST CASES HERE
-'x
 
+'x
+; expect x
+
+'(x)
+; expect Error
 
 ; Problem A2 and B2 (symbol evaluation and simple defines)
 
@@ -56,8 +60,6 @@
 
 (define x (* 2 2))
 ; expect 4
-
-
 
 (define x (lambda (z y) (+ 1 z) z (* 2 y)))
 ; expect 

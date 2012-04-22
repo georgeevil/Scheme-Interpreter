@@ -49,21 +49,10 @@ class LambdaFunction(SchemeValue):
 
     def apply_step(self, args, evaluation):
         "*** YOUR CODE HERE ***"
-        #make a new frame 
-        #and bind the arguments with the formals
-        #check the number of arguments to be same as formals
-        #apply (full?) evaluation to the arguments 
-
-#        lambda_environment = EnvironFrame(evaluation.env)
-#        for i in range(0,len(args)):
-#            lambda_environment.define(self.formals.nth(i), args[i])
-        
         lambda_environment = self.env.make_call_frame(self.formals, args)
-        
-        #go over the body and evaluate from first to last with the environment provided
         eval = Evaluation(self.body, lambda_environment)
-        
-        evaluation.set_expr(eval.step_to_value())
+#        evaluation.set_expr(eval.step_to_value())
+        evaluation.set_value(eval.step_to_value())
 
     def write(self, out):
         print("<(lambda ", file=out, end='')
@@ -126,13 +115,16 @@ class EnvironFrame:
         formal symbol is bound to a Scheme list containing the remaining
         values in VALS (which may be 0)."""
         
+        if formals.symbolp():
+            formals = Pair(formals, NULL)
+        
         #assume vals is a list []
         Evaluation.check_formals(formals)
         new_frame = EnvironFrame(self)
         list_len = len(vals)
         list_index = 0
         
-        if type(formals) == Pair:
+        if formals.pairp():
             first = formals.car
             rest = formals.cdr
         else:
@@ -145,9 +137,6 @@ class EnvironFrame:
             else:
                 raise SchemeError("too few arguments: {0},{1}".format(str(vals), str(formals)))
             if type(rest) == Symbol:
-#                if list_index == list_index -1: #case where there is only one 
-#                    new_frame.define(rest, vals[list_index])
-#                else:
                 new_frame.define(rest, vals[list_index:])
                 return
             
@@ -157,29 +146,6 @@ class EnvironFrame:
                 list_index += 1
             else:
                 break
-#    Toby's Q4A
-#        if formals.last().nullp() and formals.length() == vals.length():
-#            for i in range(formals.length()):
-#                new_frame.define(formals[i], vals[i])
-#        elif formals.last().symbolp() and formals.length() <= vals.length():
-#            for i in range(formals.length()):
-#                if i == formals.length() - 1:
-#                    new_frame.define(formals[i], vals[i:])
-#                else:
-#                    new_frame.define(formals[i], vals[i])
-     
-     # George's initial part that is a bit buggier than the current              
-#        new_frame = EnvironFrame(self)
-#        p = formals;
-#        vals_len_counter = len(vals)
-#        while p != NULL or p != None or vals_len_counter > 0:
-#            
-#            if p.cdr == NULL:
-#                if vals_len_counter != 0:
-#                    raise SchemeError("malformed argument list: {0}".format(str(vals)))
-#                
-#                break
-
         return new_frame
 
 
@@ -232,13 +198,16 @@ class Evaluation:
             #get the value bound to the symbol in that frame
             #and evaluate it fully upon this access
             to_be_eval = self.env[expr]
+            print(to_be_eval)
             self.set_value(self.full_eval(to_be_eval))
+#            self.set_value(self.step_to_value(to_be_eval))
             #self.set_value(FALSE)
         elif expr.atomp():
             self.set_value(expr)
         elif not scm_listp(expr):
             raise SchemeError("malformed list: {0}".format(str(self)))
         else:
+            print(expr, " expression")
             op = expr.car
             if op.symbolp():
                 Evaluation.SPECIAL_FORMS.get(op, Evaluation.do_call_form)(self)
@@ -248,6 +217,7 @@ class Evaluation:
     def full_eval(self, expr, env = None):
         """The value of EXPR when evaluated in environment ENV (SELF.env by
         default."""
+        print(expr, " full eval")
         return Evaluation(expr, env or self.env).step_to_value()
 
     def step_to_value(self):
@@ -268,19 +238,14 @@ class Evaluation:
 
     def do_lambda_form(self):
         self.check_form(3)
-        self.check_formals(self.expr.cdr.car)
         "*** YOUR CODE HERE ***"
-        #Debug printouts
-#        print(self.expr)
-#        print(self.expr.cdr)
-#        print(self.expr.cdr.car)
-#        print(self.expr.cdr.cdr)
+#        
+#        print(self.expr.cdr, " self.expr.cdr")
+#        print(self.expr.cdr.car, " self.expr.cdr.car")
+#        temp_lambda = LambdaFunction(self.expr.cdr.car, Pair(Evaluation._BEGIN_SYM, self.expr.cdr.cdr), self.env)
+#        self.check_formals(self.expr.cdr.car)
         temp_lambda = LambdaFunction(self.expr.cdr.car, Pair(Evaluation._BEGIN_SYM, self.expr.cdr.cdr), self.env)
         self.set_value(temp_lambda)
-
-#        print (str(temp_lambda.body))
-#        self.set_value(LambdaFunction(self.expr.cdr.car, self.expr.cdr.cdr.car, self.env))
-#        self.set_value(LambdaFunction(self.expr.cdr.car, Pair(Evaluation._BEGIN_SYM, self.expr.cdr.cdr), self.env))
         
     def do_if_form(self):
         self.check_form(4, 4)
@@ -325,7 +290,7 @@ class Evaluation:
         temp = self.expr.cdr
         bool = self.full_eval(temp.car)
         while bool == FALSE:
-            if temp.cdr == NULL:
+            if temp.cdr.null():
                 self.set_expr(FALSE)
                 return 
             else: 
@@ -346,13 +311,15 @@ class Evaluation:
                     raise SchemeError("badly formed else clause")
             else:
                 "*** YOUR CODE HERE ***"
-                test = FALSE
+#                if clause.car.nullp():
+#                    raise SchemeError("badly formed else clause")
+                test = self.full_eval(clause.car)
             if test:
                 if clause.length() == 1:
                     self.set_value(test)
                 elif clause.cdr.car is self._ARROW_SYM:
                     "*** YOUR CODE HERE ***"
-                    self.set_expr(FALSE)
+                    self.expr = Pair(clause.cdr.cdr.car, Pair(test, NULL))
                 else:
                     for i in range(1, clause.length() - 1):
                         self.full_eval(clause.nth(i))
@@ -380,6 +347,7 @@ class Evaluation:
         if target.symbolp():
             self.check_form(3,3)
             "*** YOUR CODE HERE ***"
+            print(self.expr, " do_define")
             # Evaluate self.expr.nth(2) fully and then do the next
             evaluated_expr = self.full_eval(self.expr.nth(2))
             self.env.define(target, evaluated_expr)
@@ -391,6 +359,8 @@ class Evaluation:
             self.check_formals(target.cdr)
             "*** YOUR CODE HERE ***"
 #            self.env.define(target.car, LambdaFunction(target.cdr, self.expr.nth(2), self.env))
+#                    temp_lambda = LambdaFunction(self.expr.cdr.car, Pair(Evaluation._BEGIN_SYM, self.expr.cdr.cdr), self.env)
+
             self.env.define(target.car, LambdaFunction(target.cdr, Pair(Evaluation._BEGIN_SYM, self.expr.cdr.cdr), self.env))
             self.set_value(UNSPEC)
 
@@ -499,21 +469,20 @@ class Evaluation:
         where each symx is a distinct symbol."""
         "*** YOUR CODE HERE ***"
         #assume it's a list per upper definition
-        if type (formal_list) != Pair:
+        if not formal_list.pairp():
             raise SchemeError("badly formed argument list {0}".format(repr(formal_list)))
         temp = formal_list
-        if temp.car == NULL: #initially empty list OK
-            return
-        elif type(temp.cdr) == Symbol and type(temp.car) == Symbol:
+        
+        if temp.car.nullp(): #initially empty list OK
             return
         
         while True:
             #check if the first value is a symbol and then check the last one if it is
-            if type(temp.cdr) == Symbol and type(temp.car) == Symbol: #irregular list
+            if temp.cdr.symbolp() and temp.car.symbolp(): #irregular list
                 return
-            elif temp.cdr == NULL: #end of regular list OK
+            elif temp.cdr.nullp(): #end of regular list OK
                 return
-            elif type(temp.cdr) == Pair: #continue
+            elif temp.cdr.pairp(): #continue
                 temp = temp.cdr
             else:
                 raise SchemeError("badly formed argument list {0}".format(repr(formal_list)))
@@ -642,7 +611,7 @@ def scm_read():
         return Symbol.string_to_symbol(val)
     elif syntax == "'":
         "*** YOUR CODE HERE ***"
-        return  Pair(Evaluation._QUOTE_SYM, scm_read())
+        return  Pair(Evaluation._QUOTE_SYM, Pair(scm_read(), NULL))
         #return FALSE
     elif syntax == "(":
         return read_tail()
