@@ -259,7 +259,7 @@ class Evaluation:
         temp = self.expr.cdr
         bool = self.full_eval(temp.car)
         while bool != FALSE:
-            if temp.cdr == NULL:
+            if temp.cdr.nullp():
                 self.set_expr(temp.car)
                 return bool
             else: 
