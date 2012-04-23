@@ -180,8 +180,14 @@ filtered-ints
 ;; Reverse list L destructively, creating no new pairs.  May modify the 
 ;; cdrs of the items in list L.
 (define (reverse! L)
-   ; *** YOUR CODE HERE ***
-)
+  ; *** YOUR CODE HERE ***
+(define (helper prev cur)
+(if (null? cur)
+prev
+(let ((next (cdr cur)))
+(set-cdr! cur prev)
+(helper cur next))))
+(helper '() L))
 
 (define L (list 1 2 3 4))
 (define LR (reverse! L))

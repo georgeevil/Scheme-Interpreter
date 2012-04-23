@@ -24,7 +24,7 @@ class PrimitiveFunction(SchemeValue):
         "*** YOUR CODE HERE ***"
         try:
             evaluation.set_value(self.func(*args))
-        except TypeError as err:
+        except (TypeError, ZeroDivisionError) as err:
             raise SchemeError(str(err))
 
     def __repr__(self):
@@ -112,8 +112,11 @@ class EnvironFrame:
         values in VALS (which may be 0)."""
         
         if formals.symbolp():
-            formals = Pair(formals, NULL)
-        
+            #handle the case where we have arbitrary number of arguments
+            new_frame = EnvironFrame(self)
+            new_frame.define(formals, vals)
+            return
+            
         #assume vals is a list []
         Evaluation.check_formals(formals)
         new_frame = EnvironFrame(self)
@@ -194,8 +197,7 @@ class Evaluation:
         expr = self.expr
         if expr.symbolp():
             "*** YOUR CODE HERE ***"
-            to_be_eval = self.env[expr]
-            self.set_value(self.full_eval(to_be_eval))
+            self.set_value(self.env[expr])
             #self.set_value(FALSE)
         elif expr.atomp():
             self.set_value(expr)
@@ -355,6 +357,9 @@ class Evaluation:
         self.check_form(3)
         bindings = self.expr.cdr.car
         exprs = self.expr.cdr.cdr
+        print(exprs, " exprs")
+        print(bindings, " bindings")
+        print(self.expr, " self.expr")
         if not scm_listp(bindings):
             raise SchemeError("bad bindings list in let form")
         symbols = NULL
