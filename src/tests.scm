@@ -132,6 +132,13 @@
 
 ; YOUR TEST CASES HERE
 
+(let ((x 2) (y 3)) (* x y))
+; expect 6
+
+(let ((x 2) (y 3)) (let ((x 7) (z (+ x y))) (* z x)))
+; expect 35
+
+(define x 3) (define y 10)
 (let ((x y) (y (+ x 5))) (set! x (+ x 1)) (list x y))
 ; expect (11 8)
 

@@ -357,30 +357,21 @@ class Evaluation:
         self.check_form(3)
         bindings = self.expr.cdr.car
         exprs = self.expr.cdr.cdr
-        print(exprs, " exprs")
-        print(bindings, " bindings")
-        print(self.expr, " self.expr")
         if not scm_listp(bindings):
             raise SchemeError("bad bindings list in let form")
         symbols = NULL
         vals = []
         "*** YOUR CODE HERE ***"
-        while not bindings.nullp():
-            if symbols.nullp():
-                symbols = Pair(NULL, NULL)
-                next = symbols
-
-            next = Pair(NULL, NULL)
-            bindings = bindings.cdr
-            if bindings.car.car.symbolp():
-                next.car = bindings.car.car
-            else:
-                raise SchemeError("bad binding: {0} not a symbol".format(bindings.car.car))
-
-            print(bindings.car.car, "local var", bindings.car.cdr.car)
-            vals.append(bindings.car.cdr.car)
-            next = next.cdr
-
+        for i in range(bindings.length()):
+            if bindings.nth(i).length() > 2:
+                raise SchemeError("bad binding in let:{0}".format(bindings.nth(i)))
+            symbols = Pair(bindings.nth(i).car, symbols)
+            vals = [self.full_eval(bindings.nth(i).cdr.car)] + vals
+        let_frame = self.env.make_call_frame(symbols, vals)
+        for i in range(0, exprs.length()-1):
+            self.full_eval(exprs.car, let_frame)
+            exprs = exprs.cdr
+        self.set_expr(exprs.car, let_frame)
             
         let_frame = self.env.make_call_frame(symbols, vals)
         for i in range(0, exprs.length()-1):
@@ -392,7 +383,22 @@ class Evaluation:
     def do_let_star_form(self):
         self.check_form(3)
         "*** YOUR CODE HERE ***"
-        self.set_value(UNSPEC)
+        bindings = self.expr.cdr.car
+        exprs = self.expr.cdr.cdr
+        if not scm_listp(bindings):
+            raise SchemeError("bad bindings list in let form")
+        let_frame = self.env
+        for i in range(bindings.length()):
+            if bindings.nth(i).length() > 2:
+                raise SchemeError("bad binding in let:{0}".format(bindings.nth(i)))
+            symbols = Pair(bindings.nth(i).car, NULL)
+            vals = [self.full_eval(bindings.nth(i).cdr.car, let_frame)]
+            let_frame = let_frame.make_call_frame(symbols, vals)
+        for i in range(0, exprs.length()-1):
+            self.full_eval(exprs.car, let_frame)
+            exprs = exprs.cdr
+        self.set_expr(exprs.car, let_frame)
+
     
     def do_case_form(self):
         self.check_form(2)
