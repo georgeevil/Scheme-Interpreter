@@ -132,6 +132,11 @@
 
 ; YOUR TEST CASES HERE
 
+(let ((x y) (y (+ x 5))) (set! x (+ x 1)) (list x y))
+; expect (11 8)
+
+(list x y)
+; expect (3 10)
 
 ; Extra Credit 1 (let*)
 
@@ -153,6 +158,13 @@
 ;; other than #f), computed destructively
 (define (filter! f s)
    ; *** YOUR CODE HERE ***
+   (define (hlpr pred L)
+   (cond ((null? L) L)
+        	((null? (cdr L)) L)
+        	((pred (car (cdr L))) (hlpr pred (cdr L)))  
+  		 (else (begin (set-cdr! L (cdr (cdr L)))(hlpr f (cdr L))))))
+ (hlpr f s) 
+ (if (f (car s)) s (begin (set! s (cdr s)) s))
 )
 
 (define (big x) (> x 5))
@@ -200,12 +212,12 @@ filtered-ints
 (define (reverse! L)
   ; *** YOUR CODE HERE ***
 (define (helper prev cur)
-(if (null? cur)
-prev
-(let ((next (cdr cur)))
-(set-cdr! cur prev)
-(helper cur next))))
-(helper '() L))
+	(if (null? cur)
+		prev
+		(let ((next (cdr cur)))
+		(set-cdr! cur prev)
+		(helper cur next))))
+	(helper '() L))
 
 (define L (list 1 2 3 4))
 (define LR (reverse! L))
@@ -233,6 +245,16 @@ LR
 ;; be at most MAX-VALUE and there are at most MAX-PIECES partitions.
 (define (list-partitions total max-pieces max-value)
   ; *** YOUR CODE HERE ***
+  (make-part total max-value max-pieces ())
+)
+
+(define (make-part total max-value max-pieces current-partition)
+  (cond ((= total 0) (list current-partition))
+        ((> (length current-partition) max-pieces) ())
+        ((< total 0) ())
+        ((< max-value 1) ())
+        (else (append (make-part (- total max-value) max-value max-pieces (cons max-value current-partition))
+                      (make-part total (- max-value 1) max-pieces current-partition))))
 )
 
 (list-partitions 5 2 4)

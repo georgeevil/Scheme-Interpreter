@@ -365,6 +365,23 @@ class Evaluation:
         symbols = NULL
         vals = []
         "*** YOUR CODE HERE ***"
+        while not bindings.nullp():
+            if symbols.nullp():
+                symbols = Pair(NULL, NULL)
+                next = symbols
+
+            next = Pair(NULL, NULL)
+            bindings = bindings.cdr
+            if bindings.car.car.symbolp():
+                next.car = bindings.car.car
+            else:
+                raise SchemeError("bad binding: {0} not a symbol".format(bindings.car.car))
+
+            print(bindings.car.car, "local var", bindings.car.cdr.car)
+            vals.append(bindings.car.cdr.car)
+            next = next.cdr
+
+            
         let_frame = self.env.make_call_frame(symbols, vals)
         for i in range(0, exprs.length()-1):
             self.full_eval(exprs.car, let_frame)
