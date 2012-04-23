@@ -142,6 +142,10 @@
 
 ; YOUR TEST CASES HERE
 
+(case (1) ((1 2 3) 'sucks) ((4 5 6) 'not)))
+;expect sucks
+
+
 
 ; Problem A10
 
@@ -176,6 +180,18 @@ filtered-ints
 (define us-coins '(50 25 10 5 1))
 (count-change 20 us-coins 18)
 ; expect 8
+
+(count-change 20 us-coins 2)
+; expect 2
+
+(count-change 15 us-coins 2)
+; expect 2
+
+(count-change 10 us-coins 2)
+; expect 2
+
+(count-change 9 us-coins 2)
+; expect 0
 
 ; Problem B10
 
