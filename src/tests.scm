@@ -103,7 +103,7 @@
 (and)
 ; expect #t
 
-scm> (and and)
+(and and)
 ; expect Error: unknown identifier: and
 
 (and 1 2 3)
@@ -167,9 +167,11 @@ filtered-ints
 
 ;; The number of ways to change TOTAL with DENOMS
 ;; At most MAX-COINS total coins can be used.
-(define (count-change total denoms max-coins)
-  ; *** YOUR CODE HERE ***
-)
+ (define (count-change total denoms max-coins)
+   (cond ((= total 0) 1)
+         ((or (< total 0) (null? denoms) (< max-coins 0) ) 0)
+         (else (+ (count-change (- total (car denoms)) denoms (- max-coins 1))
+                  (count-change total (cdr denoms) max-coins)))))
 
 (define us-coins '(50 25 10 5 1))
 (count-change 20 us-coins 18)
@@ -195,7 +197,7 @@ LR
 ; expect (4 3 2 1)
 
 (eq? L (list-tail LR 3))
-; expect #t
+; expect #t	
 
 ; Problem B11
 

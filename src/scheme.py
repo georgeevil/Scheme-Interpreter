@@ -278,7 +278,7 @@ class Evaluation:
         temp = self.expr.cdr
         bool = self.full_eval(temp.car)
         while bool == FALSE:
-            if temp.cdr.null():
+            if temp.cdr.nullp():
                 self.set_expr(FALSE)
                 return 
             else: 
@@ -376,10 +376,27 @@ class Evaluation:
         self.check_form(3)
         "*** YOUR CODE HERE ***"
         self.set_value(UNSPEC)
-
+    
     def do_case_form(self):
         self.check_form(2)
         "*** YOUR CODE HERE ***"
+        num_clauses = self.expr.length()
+        if num_clauses >= 3:
+            result = self.full_eval(self.expr.nth(1))
+            clause = self.expr.cdr.cdr
+            for i in range(clause.length()):
+                if clause.nth(i).length() == 1 or clause.nth(i).nullp():
+                    raise SchemeError("bad case: {0}".format(clause.nth(i)))
+                if not clause.nth(i).car.pairp() and str(clause.nth(i).car) != 'else':
+                    raise SchemeError("bad case selector: {0}".format(clause.nth(i)))
+                else:
+                    temp = clause.nth(i).car
+                    while not temp.nullp():
+                        if str(temp) == 'else' or str(result) == str(temp.car):
+                            self.set_expr(clause.nth(i).cdr.car)
+                            return
+                        else:
+                            temp = temp.cdr
         self.set_value(UNSPEC)
 
     # Symbols that are used in special forms.
